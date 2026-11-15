@@ -1,0 +1,13 @@
+{
+  "name": "the-journey",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A life story on an interactive 3D globe. Static front end plus one Vercel serverless function.",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}

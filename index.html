@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Journey</title>
+<meta name="description" content="A life story mapped on an interactive globe — places, flights, seasons and weather through time.">
+<meta name="theme-color" content="#04060c">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='11' fill='%230b1730' stroke='%23f6c453' stroke-width='2'/%3E%3Cpath d='M7 19c5-9 12-9 18-5' fill='none' stroke='%23f6c453' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+  :root {
+    --bg: #04060c;
+    --ink: #e9edf6;
+    --muted: #93a0b8;
+    --gold: #f6c453;
+    --glass: rgba(11, 15, 27, 0.58);
+    --line: rgba(255, 255, 255, 0.10);
+    --tl-h: 170px;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: radial-gradient(120% 90% at 50% 40%, #0a1226 0%, var(--bg) 62%);
+    color: var(--ink); font-family: var(--sans); overflow: hidden;
+    -webkit-font-smoothing: antialiased; overscroll-behavior: none;
+  }
+  [hidden] { display: none !important; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 8px; }
+
+  #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+  .glass {
+    background: var(--glass); border: 1px solid var(--line); border-radius: 18px;
+    -webkit-backdrop-filter: blur(18px) saturate(150%); backdrop-filter: blur(18px) saturate(150%);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px;
+    font-size: 12px; line-height: 1.2; background: rgba(255,255,255,0.07); border: 1px solid var(--line); white-space: nowrap;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--gold)); box-shadow: 0 0 10px var(--c, var(--gold)); flex: none; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 12px;
+    border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,0.06); font-size: 13px;
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  .btn:hover { background: rgba(255,255,255,0.13); }
+  .btn[aria-pressed="true"] { background: var(--gold); color: #1b1404; border-color: transparent; font-weight: 600; }
+  .btn-gold { background: var(--gold); color: #1b1404; border-color: transparent; font-weight: 600; }
+  .btn-gold:hover { background: #ffd874; }
+  .btn-danger:hover { background: rgba(255, 99, 99, 0.25); border-color: rgba(255, 120, 120, 0.5); }
+
+  /* ---------- HUD (top-left) + actions (top-right) */
+  #hud { position: fixed; z-index: 20; top: calc(14px + env(safe-area-inset-top)); left: calc(14px + env(safe-area-inset-left)); max-width: min(72vw, 420px); pointer-events: none; }
+  #hud h1 { font-family: var(--serif); font-size: clamp(26px, 5vw, 40px); line-height: 1; margin: 0; letter-spacing: -0.01em; text-shadow: 0 2px 24px rgba(0,0,0,.6); }
+  #hud .name { margin: 6px 0 10px; color: var(--muted); font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; }
+  #hud .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  #chapter { font-size: 13px; padding: 6px 12px; }
+  #actions { position: fixed; z-index: 20; top: calc(14px + env(safe-area-inset-top)); right: calc(14px + env(safe-area-inset-right)); }
+
+  /* ---------- Timeline (bottom) */
+  #timeline {
+    position: fixed; z-index: 30; left: 50%; transform: translateX(-50%);
+    bottom: calc(10px + env(safe-area-inset-bottom)); width: min(980px, calc(100vw - 20px)); padding: 12px 14px 10px;
+  }
+  #play {
+    width: 52px; height: 52px; flex: none; border-radius: 50%; border: 0; background: var(--gold); color: #1b1404;
+    display: grid; place-items: center; box-shadow: 0 0 0 6px rgba(246,196,83,0.14), 0 6px 22px rgba(246,196,83,0.35);
+    transition: transform .12s;
+  }
+  #play:hover { transform: scale(1.05); }
+  #play:active { transform: scale(0.96); }
+  #dateOut { font-family: var(--serif); font-size: clamp(24px, 3.4vw, 36px); line-height: 1.1; font-variant-numeric: tabular-nums; }
+  #ageOut { font-size: 13px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .speed { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid var(--line); }
+  .speed .btn { min-height: 30px; padding: 0 10px; border: 0; background: transparent; font-variant-numeric: tabular-nums; }
+  .speed .btn:hover { background: rgba(255,255,255,0.12); }
+  .speed .btn[aria-pressed="true"] { background: var(--gold); }
+
+  .track-wrap { margin: 10px 9px 0; }
+  #pins { position: relative; height: 18px; }
+  .pin {
+    position: absolute; bottom: 2px; width: 22px; height: 22px; margin-left: -11px; padding: 0; border: 0; background: transparent;
+    display: grid; place-items: center; border-radius: 50%;
+  }
+  .pin::after { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); opacity: .45; transition: transform .15s, opacity .15s; }
+  .pin.reached::after { opacity: 1; }
+  .pin.active::after { transform: scale(1.55); }
+  .pin:hover::after { transform: scale(1.7); opacity: 1; }
+  .track { position: relative; height: 12px; border-radius: 999px; background: rgba(255,255,255,0.07); }
+  #bands, #fill { position: absolute; inset: 0; border-radius: 999px; overflow: hidden; pointer-events: none; }
+  #bands span { position: absolute; top: 0; bottom: 0; background: var(--c); opacity: .28; border-right: 1px solid rgba(4,6,12,.8); }
+  #fill { right: auto; width: 0; background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.38)); mix-blend-mode: screen; }
+  #scrub {
+    position: absolute; left: -11px; width: calc(100% + 22px); top: -10px; height: 32px; margin: 0;
+    -webkit-appearance: none; appearance: none; background: transparent; cursor: grab; touch-action: none;
+  }
+  #scrub:active { cursor: grabbing; }
+  #scrub::-webkit-slider-runnable-track { height: 32px; background: transparent; }
+  #scrub::-moz-range-track { height: 32px; background: transparent; }
+  #scrub::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 22px; height: 22px; margin-top: 5px; border-radius: 50%;
+    background: #fff; border: 4px solid var(--gold); box-shadow: 0 0 16px rgba(246,196,83,0.85);
+  }
+  #scrub::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 4px solid var(--gold); box-shadow: 0 0 16px rgba(246,196,83,0.85); }
+  #scrub:focus-visible { outline: none; }
+  #scrub:focus-visible::-webkit-slider-thumb { outline: 2px solid #fff; outline-offset: 3px; }
+  #scrub:focus-visible::-moz-range-thumb { outline: 2px solid #fff; outline-offset: 3px; }
+  #ticks { position: relative; height: 20px; margin-top: 4px; }
+  #ticks span { position: absolute; top: 0; transform: translateX(-50%); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 7px; }
+  #ticks span::before { content: ""; position: absolute; left: 50%; top: 0; width: 1px; height: 5px; background: rgba(255,255,255,0.3); }
+  #stats { margin: 2px 0 0; font-size: 12px; color: var(--muted); text-align: center; }
+  #stats b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Badges (bottom-right, above the timeline) */
+  #badges { position: fixed; z-index: 25; right: calc(12px + env(safe-area-inset-right)); bottom: calc(var(--tl-h) + 20px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none; }
+  .badge { font-size: 11px; padding: 4px 9px; border-radius: 999px; color: var(--muted); background: rgba(11,15,27,0.6); border: 1px solid var(--line); letter-spacing: .02em; }
+
+  /* ---------- Tooltip (desktop hover) */
+  #tooltip { position: fixed; z-index: 40; left: 0; top: 0; width: max-content; max-width: 290px; padding: 12px 14px; pointer-events: none; opacity: 0; transform: translate3d(-999px,-999px,0); transition: opacity .12s; }
+  #tooltip.show { opacity: 1; }
+  .wp-title { font-family: var(--serif); font-size: 19px; line-height: 1.15; margin: 0; }
+  .wp-meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 9px 0 0; font-size: 12.5px; }
+  .wp-meta dt { color: var(--muted); }
+  .wp-meta dd { margin: 0; }
+  .wp-note { margin: 9px 0 0; font-size: 13px; font-style: italic; color: #cfd6e6; }
+
+  /* ---------- Bottom sheet (touch) */
+  #sheet {
+    position: fixed; z-index: 50; left: 0; right: 0; bottom: 0; padding: 10px 18px calc(18px + env(safe-area-inset-bottom));
+    border-radius: 22px 22px 0 0; border-bottom: 0; transform: translateY(105%); transition: transform .28s cubic-bezier(.2,.8,.2,1);
+    max-width: 560px; margin: 0 auto;
+  }
+  #sheet.open { transform: none; }
+  #sheet .grab { width: 40px; height: 4px; border-radius: 4px; background: rgba(255,255,255,.25); margin: 0 auto 12px; }
+
+  /* ---------- Editor drawer (slide-out, non-modal) */
+  #editor {
+    position: fixed; z-index: 60; top: 0; right: 0; bottom: 0; width: min(410px, 100vw); padding: calc(16px + env(safe-area-inset-top)) 18px 18px;
+    border-radius: 22px 0 0 22px; border-right: 0; overflow-y: auto; transform: translateX(105%);
+    transition: transform .3s cubic-bezier(.2,.8,.2,1); overscroll-behavior: contain;
+  }
+  #editor.open { transform: none; }
+  #editor h2 { font-family: var(--serif); font-size: 24px; margin: 0; }
+  #editor h3 { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 18px 0 8px; }
+  .field { display: block; font-size: 12px; color: var(--muted); }
+  .field > input, .field > select, .field > textarea {
+    display: block; width: 100%; margin-top: 4px; padding: 9px 11px; border-radius: 10px; font-size: 14px; color: var(--ink);
+    background: rgba(255,255,255,0.06); border: 1px solid var(--line);
+  }
+  .field > select option { color: #111; }
+  .field > textarea { resize: vertical; min-height: 60px; }
+  .field > input:disabled { opacity: .4; }
+  #edList { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  #edList li { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--line); font-size: 13px; }
+  #edList .what { flex: 1; min-width: 0; }
+  #edList .what small { display: block; color: var(--muted); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #edList .btn { min-height: 30px; padding: 0 10px; font-size: 12px; }
+  #edStatus { min-height: 18px; font-size: 12.5px; color: var(--muted); margin: 12px 0 0; }
+  #edStatus.err { color: #ff9c9c; }
+
+  /* ---------- Loader / fallback message */
+  #loader { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: var(--bg); transition: opacity .6s; }
+  #loader.done { opacity: 0; pointer-events: none; }
+  #loader p { font-family: var(--serif); font-size: 20px; color: var(--muted); letter-spacing: .02em; text-align: center; padding: 0 24px; }
+
+  /* ---------- View bar (bottom-left), legend, milestone flash */
+  #viewbar { position: fixed; z-index: 25; left: calc(12px + env(safe-area-inset-left)); bottom: calc(var(--tl-h) + 20px + env(safe-area-inset-bottom)); display: flex; flex-wrap: wrap-reverse; align-items: center; gap: 6px; max-width: calc(100vw - 172px); }
+  #viewbar .btn { min-height: 32px; }
+  #legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 9px; font-size: 11.5px; color: var(--muted); text-shadow: 0 1px 6px #000; }
+  #legend i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 50%; background: var(--c, #fff); box-shadow: 0 0 6px var(--c, #fff); }
+  #legend i.dia { border-radius: 1px; transform: rotate(45deg); }
+  .pin.visit::after { border-radius: 1px; transform: rotate(45deg) scale(.8); }
+  .pin.visit.active::after, .pin.visit:hover::after { transform: rotate(45deg) scale(1.35); }
+  body.dark .pin:not(.reached) { visibility: hidden; }
+  #flash { position: fixed; z-index: 45; left: 50%; top: 24%; transform: translateX(-50%); font-family: var(--serif); font-size: clamp(19px, 3.6vw, 30px); color: #ffe9b8; text-shadow: 0 0 26px rgba(246,196,83,.85), 0 2px 10px #000; white-space: nowrap; pointer-events: none; opacity: 0; }
+  #flash.show { animation: flash 2.8s ease both; }
+  @keyframes flash { 0% { opacity: 0; letter-spacing: .32em; } 16% { opacity: 1; letter-spacing: .05em; } 74% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes flashStill { 0%, 90% { opacity: 1; } 100% { opacity: 0; } }
+  @media (min-width: 641px) {      /* detail card on larger screens; bottom sheet on phones */
+    #sheet { left: auto; right: 14px; bottom: auto; top: 66px; width: 330px; margin: 0; padding: 14px 16px 16px; border-radius: 18px; border: 1px solid var(--line); transform: translateX(120%); }
+    #sheet .grab { display: none; }
+  }
+
+  @media (max-width: 640px) {
+    #timeline { padding: 10px 10px 8px; border-radius: 16px; }
+    #play { width: 46px; height: 46px; }
+    #dateOut { font-size: 24px; }
+    .hide-sm { display: none; }
+    #editor { top: auto; left: 0; width: 100vw; height: 74dvh; border-radius: 22px 22px 0 0; border: 1px solid var(--line); border-bottom: 0; transform: translateY(105%); padding-top: 16px; }
+    #ticks span { font-size: 10px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #sheet, #editor, #tooltip, #loader, .btn, #play, .pin::after { transition: none !important; }
+    #flash.show { animation: flashStill 2.8s linear both; }
+  }
+</style>
+</head>
+
+<body>
+<canvas id="scene" role="img" aria-label="Interactive 3D globe showing the places of this life story, connected by flight arcs. Use the timeline controls below to move through time."></canvas>
+
+<header id="hud">
+  <h1>The Journey</h1>
+  <p class="name" id="personName">&nbsp;</p>
+  <div class="chips">
+    <span class="chip glass" id="chapter"><span class="dot" id="chapterDot"></span><span id="chapterText">Loading…</span></span>
+    <span class="chip glass" id="seasonChip" title="Season at the active place">—</span>
+    <span class="chip glass" id="weatherChip" title="Weather at the active place">—</span>
+    <span class="chip glass" id="discChip" hidden>World discovered: 0%</span>
+  </div>
+  <div id="legend" aria-label="Legend"></div>
+</header>
+
+<div id="actions">
+  <button class="btn glass" id="editBtn" aria-label="Edit Journey" aria-expanded="false" aria-controls="editor">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+    <span>Edit Journey</span>
+  </button>
+</div>
+
+<div id="badges" aria-live="polite">
+  <span class="badge" id="badgeLocal" hidden>● Local Data Mode</span>
+  <span class="badge" id="badgeSim" hidden>≈ Simulated Weather</span>
+</div>
+
+<div id="viewbar">
+  <div class="speed glass" role="group" aria-label="Map mode">
+    <button class="btn" data-mode="full" aria-pressed="false" aria-label="Full Map mode: every place visible">Full Map</button>
+    <button class="btn" data-mode="dark" aria-pressed="true" aria-label="Discovery mode: the world starts dark and lights up as life happens">Discovery</button>
+  </div>
+  <button class="btn glass" id="chapBtn" aria-pressed="false" aria-label="Colour arcs by life chapter">Chapters</button>
+  <button class="btn btn-gold" id="finishBtn" hidden aria-label="Play the finishing camera orbit around the lit journey">✦ Finish orbit</button>
+</div>
+<div id="flash" aria-hidden="true"></div>
+
+<div id="tooltip" class="glass" role="tooltip"></div>
+
+<section id="sheet" class="glass" role="dialog" aria-label="Waypoint details" aria-hidden="true" inert>
+  <div class="grab" aria-hidden="true"></div>
+  <div id="sheetBody"></div>
+  <div class="flex gap-2 mt-4">
+    <button class="btn btn-gold flex-1" id="sheetJump" aria-label="Jump the timeline to this moment">Jump to this moment</button>
+    <button class="btn" id="sheetClose" aria-label="Close waypoint details">Close</button>
+  </div>
+</section>
+
+<aside id="editor" class="glass" aria-label="Edit journey" aria-hidden="true" inert>
+  <div class="flex items-center justify-between gap-3">
+    <h2>Edit Journey</h2>
+    <button class="btn" id="editorClose" aria-label="Close editor">Close</button>
+  </div>
+
+  <label class="field mt-4">Whose journey is this?
+    <input id="edName" type="text" maxlength="80" autocomplete="off" aria-label="Person's name">
+  </label>
+  <label class="field mt-3" id="edTokenRow" hidden>Edit passphrase
+    <input id="edToken" type="password" autocomplete="off" aria-label="Edit passphrase">
+  </label>
+
+  <h3>Waypoints</h3>
+  <ul id="edList" aria-label="Waypoints in chronological order"></ul>
+
+  <form id="edForm" novalidate>
+    <h3 id="edFormTitle">Add a waypoint</h3>
+    <div class="grid grid-cols-3 gap-2">
+      <label class="field col-span-2">Place
+        <input id="fPlace" type="text" maxlength="120" required placeholder="City or town" autocomplete="off">
+      </label>
+      <label class="field">Country
+        <input id="fCountry" type="text" maxlength="56" placeholder="e.g. CA" autocomplete="off">
+      </label>
+    </div>
+    <div class="grid grid-cols-2 gap-2 mt-2">
+      <label class="field">Arrived on
+        <input id="fDate" type="date" min="0001-01-01">
+      </label>
+      <label class="field">Life chapter
+        <select id="fStage"></select>
+      </label>
+    </div>
+    <label class="flex items-center gap-2 mt-2 text-[13px]" for="fNow">
+      <input id="fNow" type="checkbox" class="w-4 h-4"> This is where I am today (“NOW”)
+    </label>
+    <label class="field mt-2">Kind of stay
+      <select id="fKind">
+        <option value="">Auto (under two months counts as a visit)</option>
+        <option value="home">Home — lived here</option>
+        <option value="visit">Short visit</option>
+      </select>
+    </label>
+    <label class="field mt-2">Note
+      <textarea id="fNote" maxlength="400" placeholder="What happened here?"></textarea>
+    </label>
+    <div class="grid grid-cols-2 gap-2 mt-2">
+      <label class="field">Latitude (optional)
+        <input id="fLat" type="number" step="any" min="-90" max="90" placeholder="auto">
+      </label>
+      <label class="field">Longitude (optional)
+        <input id="fLon" type="number" step="any" min="-180" max="180" placeholder="auto">
+      </label>
+    </div>
+    <p class="text-[11.5px] mt-1" style="color:var(--muted)">Leave coordinates blank and the place is located automatically.</p>
+    <div class="flex gap-2 mt-3">
+      <button class="btn btn-gold flex-1" type="submit" id="fSubmit">Add waypoint</button>
+      <button class="btn" type="button" id="fCancel" hidden>Cancel</button>
+    </div>
+  </form>
+
+  <p id="edStatus" role="status" aria-live="polite"></p>
+  <button class="btn btn-danger mt-2" id="edReset" hidden aria-label="Discard local changes and reload the seed journey">Discard local changes</button>
+</aside>
+
+<footer id="timeline" class="glass" aria-label="Time machine">
+  <div class="flex items-center gap-3 flex-wrap">
+    <button id="play" aria-label="Play">
+      <svg id="icoPlay" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z"/></svg>
+      <svg id="icoPause" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" hidden><rect x="5" y="4" width="5" height="16" rx="1.2"/><rect x="14" y="4" width="5" height="16" rx="1.2"/></svg>
+    </button>
+    <div class="flex-1 min-w-[110px]">
+      <div id="dateOut">—</div>
+      <div id="ageOut">&nbsp;</div>
+    </div>
+    <div class="speed" role="group" aria-label="Playback speed">
+      <button class="btn" data-speed="1" aria-pressed="true" aria-label="Speed 1 times">1×</button>
+      <button class="btn" data-speed="2" aria-pressed="false" aria-label="Speed 2 times">2×</button>
+      <button class="btn" data-speed="4" aria-pressed="false" aria-label="Speed 4 times">4×</button>
+    </div>
+    <button class="btn" id="todayBtn" aria-label="Jump to Today">Today <span aria-hidden="true">⇥</span></button>
+    <button class="btn" id="followBtn" aria-pressed="true" aria-label="Camera follows the journey" title="Camera follows the journey">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+      <span class="hide-sm">Follow</span>
+    </button>
+  </div>
+
+  <div class="track-wrap">
+    <div id="pins" role="group" aria-label="Waypoints"></div>
+    <div class="track">
+      <div id="bands"></div>
+      <div id="fill"></div>
+      <input id="scrub" type="range" min="0" max="100000" step="1" value="0" aria-label="Timeline scrubber">
+    </div>
+    <div id="ticks" aria-hidden="true"></div>
+  </div>
+  <p id="stats">&nbsp;</p>
+</footer>
+
+<div class="sr-only" id="live" aria-live="polite"></div>
+<div id="loader"><p id="loaderText">Charting the journey…</p></div>
+<noscript><p style="position:fixed;inset:0;display:grid;place-items:center;color:#e9edf6">The Journey needs JavaScript and WebGL to draw the globe.</p></noscript>
+
+<script type="module">
+/* =====================================================================================
+   THE JOURNEY
+   One number drives the story: T, the scrubber's normalized time (0 → first waypoint,
+   1 → today). Arcs, comet, avatar, camera, seasons and HUD are all pure functions of T,
+   so scrubbing backward or forward can never desync. Wall-clock time is only used to
+   advance T during playback and for stateless ambient loops (marker pulse, rain, confetti).
+   Two render modes (Full Map / Discovery) share this one state machine.
+   Sections: 1 config · 2 utils · 3 data/API · 4 weather · 5 time model · 6 scene ·
+             7 per-frame state · 8 UI · 9 editor · 10 input · 11 boot
+   ===================================================================================== */
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ------------------------------------------------------------------ 1. config */
+const CONFIG = {
+  playSeconds: 60,          // a whole life at 1× speed
+  travelShare: 0.25,        // a flight's screen time is proportional to the real gap before the move…
+  travelFloor: 0.006,       // …with a small floor so short hops are still visible
+  bloomWindow: 0.025,       // Discovery: timeline share a halo takes to bloom (≈1.5 s at 1×)
+  avatarHeight: 0.21,       // adult height in globe radii
+  arcFade: 0.02,            // timeline share over which a finished arc dims to 0.3
+  orbitTurns: 12,           // laps the avatar walks around a waypoint over the whole timeline
+  weatherParticles: 50,     // hard cap, single THREE.Points
+  confettiParticles: 48,
+  earthTexture: 'https://cdn.jsdelivr.net/npm/three-globe@2.45.6/example/img/earth-day.jpg',
+};
+const STAGES = {
+  birth:     { label: 'Birth',      color: '#f6c453' },
+  childhood: { label: 'Childhood',  color: '#ff9e6b' },
+  education: { label: 'Education',  color: '#5aa9ff' },
+  career:    { label: 'Career',     color: '#b28cff' },
+  adventure: { label: 'Adventure',  color: '#ff6fae' },
+  family:    { label: 'Family',     color: '#ff8f8f' },
+  adult:     { label: 'Adult life', color: '#4ade9b' },
+};
+const FALLBACK_JOURNEY = {
+  userId: 'default', name: 'A traveller', updatedAt: '2026-01-01T00:00:00Z',
+  waypoints: [
+    { year: 1990, month: 6, day: 15, place: 'New York', country: 'US', lat: 40.7128, lon: -74.006, stage: 'birth', note: 'Born on a summer morning' },
+    { year: 2010, month: 8, day: 20, place: 'Toronto', country: 'CA', lat: 43.6532, lon: -79.3832, stage: 'education', note: 'First time away from home' },
+    { year: 'NOW', place: 'London', country: 'GB', lat: 51.5072, lon: -0.1276, stage: 'adult', note: 'Where life happens today' },
+  ],
+};
+
+/* ------------------------------------------------------------------ 2. utils */
+const $ = (s, r = document) => r.querySelector(s);
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
+const DAY = 864e5, YEAR = 365.2425 * DAY, EARTH_KM = 6371;
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const dateFmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const fmtDate = (ms) => dateFmt.format(ms);
+const isoDate = (ms) => new Date(ms).toISOString().slice(0, 10);
+const num = (n) => Math.round(n).toLocaleString('en-US');
+const titleCase = (s) => String(s || '').replace(/\b\w/g, (c) => c.toUpperCase());
+const stageInfo = (s) => STAGES[s] || { label: titleCase(s || 'Chapter'), color: '#9fb4d8' };
+const flag = (cc) => /^[A-Za-z]{2}$/.test(cc || '') ? String.fromCodePoint(...[...cc.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65)) : '';
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } },
+  del(k) { try { localStorage.removeItem(k); } catch { /* ignore */ } },
+};
+function fetchT(url, init = {}, ms = 9000) {
+  const ctl = new AbortController();
+  const id = setTimeout(() => ctl.abort(), ms);
+  return fetch(url, { ...init, signal: ctl.signal }).finally(() => clearTimeout(id));
+}
+function humanDuration(ms) {
+  const y = Math.floor(ms / YEAR), m = Math.floor((ms % YEAR) / (YEAR / 12)), d = Math.round(ms / DAY);
+  if (y > 0) return `${y} yr${y > 1 ? 's' : ''}${m ? ` ${m} mo` : ''}`;
+  if (m > 0) return `${m} month${m > 1 ? 's' : ''}`;
+  return `${d} day${d === 1 ? '' : 's'}`;
+}
+function latLonToVec3(lat, lon, r = 1, out = new THREE.Vector3()) {
+  const phi = (90 - lat) * Math.PI / 180, theta = (lon + 180) * Math.PI / 180;
+  return out.set(-r * Math.sin(phi) * Math.cos(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(theta));
+}
+function hash01(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return ((h >>> 0) % 100000) / 100000; }
+
+const motionQuery = matchMedia('(prefers-reduced-motion: reduce)');
+let reduced = motionQuery.matches;
+motionQuery.addEventListener?.('change', (e) => { reduced = e.matches; });
+const touchUI = () => matchMedia('(hover: none), (max-width: 640px)').matches;
+
+/* ------------------------------------------------------------------ 3. data / API */
+const USER = (new URLSearchParams(location.search).get('user') || 'default').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40) || 'default';
+const LS_DRAFT = `journey:draft:${USER}`;
+const api = { available: false, mode: 'local', editProtected: false };
+const nowMs = Date.now();
+let journey = null;
+
+const hasCoords = (w) => typeof w.lat === 'number' && typeof w.lon === 'number' && Number.isFinite(w.lat) && Number.isFinite(w.lon);
+const isNow = (w) => String(w.year).toUpperCase() === 'NOW';
+const wpTime = (w) => isNow(w) ? nowMs : Date.UTC(+w.year, (+w.month || 1) - 1, +w.day || 1);
+
+function normalizeJourney(j) {
+  const src = j && Array.isArray(j.waypoints) ? j : FALLBACK_JOURNEY;
+  return {
+    userId: USER, name: String(src.name || 'A traveller'), updatedAt: src.updatedAt || new Date().toISOString(),
+    waypoints: src.waypoints.filter((w) => w && w.place).map((w) => ({
+      ...(isNow(w) ? { year: 'NOW' } : { year: +w.year, month: +w.month || 1, day: +w.day || 1 }),
+      place: String(w.place), country: String(w.country || ''),
+      lat: hasCoords(w) ? w.lat : null, lon: hasCoords(w) ? w.lon : null,
+      stage: String(w.stage || 'adult').toLowerCase(), note: String(w.note || ''),
+      ...(w.kind === 'home' || w.kind === 'visit' ? { kind: w.kind } : {}),
+    })),
+  };
+}
+
+async function loadJourney() {
+  let raw = null;
+  try {
+    const r = await fetchT(`/api/journey?user=${USER}`, { headers: { Accept: 'application/json' } });
+    const d = r.ok ? await r.json() : null;
+    if (!d || !d.journey) throw new Error('no api');
+    api.available = true; api.mode = d.mode === 'redis' ? 'redis' : 'local'; api.editProtected = Boolean(d.editProtected);
+    raw = d.journey;
+  } catch {
+    try { raw = await (await fetchT('./journey.json')).json(); } catch { raw = FALLBACK_JOURNEY; }
+  }
+  if (api.mode === 'local') { const draft = store.get(LS_DRAFT); if (draft && Array.isArray(draft.waypoints)) raw = draft; }
+  journey = normalizeJourney(raw);
+  $('#badgeLocal').hidden = api.mode !== 'local';
+}
+
+/** Persist: POST /api/journey when the API exists; browser storage when running in Local Data Mode. */
+async function saveJourney() {
+  journey.updatedAt = new Date().toISOString();
+  let persisted = false, error = '';
+  if (api.available) {
+    try {
+      const token = sessionStorage.getItem('journey:token') || '';
+      const r = await fetchT(`/api/journey?user=${USER}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { 'x-edit-token': token } : {}) },
+        body: JSON.stringify({ journey }),
+      }, 15000);
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) persisted = Boolean(d.persisted);
+      else error = r.status === 401 ? 'Enter the edit passphrase to save.' : (d.error || `Save failed (${r.status})`);
+    } catch { error = 'Could not reach the server.'; }
+  }
+  if (!persisted) store.set(LS_DRAFT, journey);
+  return { persisted, error };
+}
+
+async function geocode(place, country) {
+  const u = new URL('https://geocoding-api.open-meteo.com/v1/search');
+  u.searchParams.set('name', place.split(',')[0].trim());
+  u.searchParams.set('count', '10'); u.searchParams.set('language', 'en'); u.searchParams.set('format', 'json');
+  const d = await (await fetchT(u)).json();
+  const results = Array.isArray(d.results) ? d.results : [];
+  if (!results.length) return null;
+  const c = (country || '').trim().toLowerCase();
+  const hit = (c && results.find((r) => String(r.country_code || '').toLowerCase() === c || String(r.country || '').toLowerCase() === c)) || results[0];
+  return { lat: +hit.latitude.toFixed(5), lon: +hit.longitude.toFixed(5) };
+}
+
+/** Rule: null lat/lon → geocode via Open-Meteo, update local state; the caller then POSTs to persist. */
+async function resolveCoords() {
+  const out = { resolved: 0, failed: [] };
+  for (const w of journey.waypoints) {
+    if (hasCoords(w)) continue;
+    try {
+      const hit = await geocode(w.place, w.country);
+      if (hit) { w.lat = hit.lat; w.lon = hit.lon; out.resolved++; } else out.failed.push(w.place);
+    } catch { out.failed.push(w.place); }
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------------ 4. weather */
+const WMO = [
+  [[0], '☀️', 'Clear'], [[1], '🌤️', 'Mostly clear'], [[2], '⛅', 'Partly cloudy'], [[3], '☁️', 'Overcast'],
+  [[45, 48], '🌫️', 'Fog'], [[51, 53, 55], '🌦️', 'Drizzle'], [[56, 57], '🌧️', 'Freezing drizzle'],
+  [[61, 63, 65], '🌧️', 'Rain'], [[66, 67], '🌧️', 'Freezing rain'], [[71, 73, 75, 77], '❄️', 'Snow'],
+  [[80, 81, 82], '🌦️', 'Showers'], [[85, 86], '🌨️', 'Snow showers'], [[95], '⛈️', 'Thunderstorm'], [[96, 99], '⛈️', 'Storm & hail'],
+];
+function describeWeather(w) {
+  const row = WMO.find((r) => r[0].includes(w.code)) || [[], '🌡️', 'Weather'];
+  const emoji = w.code === 0 && w.isDay === false ? '🌙' : row[1];
+  return { emoji, label: row[2], temp: `${Math.round(w.temp)}°C` };
+}
+const precipKind = (code) => ([71, 73, 75, 77, 85, 86].includes(code) ? 'snow' : (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95 ? 'rain' : null);
+
+function seasonAt(ms, lat) {
+  const d = new Date(ms), doy = (ms - Date.UTC(d.getUTCFullYear(), 0, 1)) / DAY;
+  const north = lat >= 0;
+  const warmth = Math.cos(2 * Math.PI * (doy - 200) / 365.25) * (north ? 1 : -1);   // +1 midsummer … −1 midwinter
+  const s = warmth * clamp(Math.abs(lat) / 35, 0.2, 1);                               // seasons fade toward the equator
+  const names = ['Winter', 'Winter', 'Spring', 'Spring', 'Spring', 'Summer', 'Summer', 'Summer', 'Autumn', 'Autumn', 'Autumn', 'Winter'];
+  const flip = { Winter: 'Summer', Summer: 'Winter', Spring: 'Autumn', Autumn: 'Spring' };
+  const name = north ? names[d.getUTCMonth()] : flip[names[d.getUTCMonth()]];
+  return { s, warmth, phase: 2 * Math.PI * (doy - 200) / 365.25 + (north ? 0 : Math.PI), name, emoji: { Spring: '🌸', Summer: '☀️', Autumn: '🍂', Winter: '❄️' }[name], hemi: north ? 'Northern' : 'Southern' };
+}
+
+/** Procedural estimate from latitude + season — used only when Open-Meteo is unreachable. */
+function simulateWeather(lat, lon, ms, live) {
+  const { warmth } = seasonAt(ms, lat);
+  const r = hash01(`${lat.toFixed(1)},${lon.toFixed(1)},${isoDate(ms)}`);
+  const temp = 28 - 0.42 * Math.abs(lat) + 0.28 * Math.abs(lat) * warmth + (r - 0.5) * 6;
+  const code = r < 0.42 ? (r < 0.2 ? 0 : 1) : r < 0.7 ? (r < 0.56 ? 2 : 3) : temp <= 0.5 ? 73 : r < 0.9 ? 61 : 80;
+  return { kind: live ? 'live' : 'archive', code, temp, isDay: true, simulated: true };
+}
+
+async function openMeteoDirect(lat, lon, date) {
+  const base = `latitude=${lat}&longitude=${lon}&timezone=auto`;
+  if (date === 'now') {
+    const d = await (await fetchT(`https://api.open-meteo.com/v1/forecast?${base}&current=temperature_2m,weather_code,is_day`)).json();
+    if (typeof d?.current?.temperature_2m !== 'number') throw new Error('no data');
+    return { kind: 'live', code: d.current.weather_code ?? null, temp: d.current.temperature_2m, isDay: d.current.is_day !== 0 };
+  }
+  const recent = Date.now() - Date.parse(`${date}T00:00:00Z`) < 7 * DAY;
+  const url = recent
+    ? `https://api.open-meteo.com/v1/forecast?${base}&start_date=${date}&end_date=${date}&daily=weather_code,temperature_2m_max,temperature_2m_min`
+    : `https://archive-api.open-meteo.com/v1/archive?${base}&start_date=${date}&end_date=${date}&daily=weather_code,temperature_2m_max,temperature_2m_min,temperature_2m_mean`;
+  const d = await (await fetchT(url)).json();
+  const pick = (k) => (Array.isArray(d?.daily?.[k]) && typeof d.daily[k][0] === 'number' ? d.daily[k][0] : null);
+  const tmax = pick('temperature_2m_max'), tmin = pick('temperature_2m_min');
+  let temp = pick('temperature_2m_mean');
+  if (temp === null && tmax !== null && tmin !== null) temp = (tmax + tmin) / 2;
+  if (temp === null) throw new Error('no data');
+  return { kind: 'archive', code: pick('weather_code') ?? pick('weathercode'), temp, tmax, tmin, isDay: true };
+}
+
+const weather = new Map();                       // key → weather record
+const weatherKey = (w) => `${w.lat.toFixed(2)},${w.lon.toFixed(2)},${w.isNow ? 'now' : isoDate(w.time)}`;
+const weatherOf = (w) => weather.get(weatherKey(w)) || null;
+
+async function loadWeather(w) {
+  const key = weatherKey(w);
+  if (weather.has(key)) return;
+  const date = w.isNow ? 'now' : isoDate(w.time);
+  const ttl = w.isNow ? 36e5 : DAY;
+  const cached = store.get(`journey:wx:${key}`);
+  if (!w.isNow && cached && Date.now() - cached.at < ttl) { weather.set(key, cached.w); return; }   // live weather is refetched on every page load
+  let rec = null;
+  const fetchable = w.isNow || (w.time <= Date.now() && date >= '1940-01-01');
+  if (fetchable) {
+    const la = w.lat.toFixed(2), lo = w.lon.toFixed(2);
+    if (api.available) {            // server route = Upstash-cached Open-Meteo
+      try {
+        const r = await fetchT(`/api/journey?resource=weather&lat=${la}&lon=${lo}&date=${date}`);
+        if (r.ok) rec = (await r.json()).weather || null;
+      } catch { /* fall through */ }
+    }
+    if (!rec) { try { rec = await openMeteoDirect(la, lo, date); } catch { /* fall through */ } }
+  }
+  if (rec && typeof rec.temp === 'number') w.isNow || store.set(`journey:wx:${key}`, { at: Date.now(), w: rec });
+  else rec = simulateWeather(w.lat, w.lon, w.time, w.isNow);
+  weather.set(key, rec);
+}
+async function loadAllWeather() {
+  const queue = [...model.wps];
+  const worker = async () => { while (queue.length) { await loadWeather(queue.shift()); ui.dirty = true; } };
+  await Promise.all([worker(), worker(), worker()]);
+  $('#badgeSim').hidden = !model.wps.some((w) => weatherOf(w)?.simulated);
+  ui.dirty = true;
+}
+
+/* ------------------------------------------------------------------ 5. time model */
+const model = { wps: [], arcs: [], t0: 0, t1: 1, span: 1, stats: { places: 0, countries: 0, km: 0 } };
+let T = 0;   // ← the scrubber: single source of truth for every animation
+
+function continentOf(lat, lon) {      // coarse boxes — only used for the "first continent crossed" milestone
+  if (lat < -60) return 'Antarctica';
+  if (lon < -170 || (lon > 160 && lat < 0)) return 'Oceania';
+  if (lon < -30) return lat >= 13 ? 'North America' : 'South America';
+  if (lon < 60) return lat >= 36 ? (lon < 45 ? 'Europe' : 'Asia') : (lat > 12 && lon > 35 ? 'Asia' : 'Africa');
+  return lat < -10 ? 'Oceania' : 'Asia';
+}
+
+function buildModel() {
+  const wps = journey.waypoints
+    .map((w, src) => ({ ...w, src, isNow: isNow(w), time: wpTime(w) }))
+    .filter((w) => hasCoords(w) && Number.isFinite(w.time))
+    .sort((a, b) => (a.time - b.time) || (a.isNow - b.isNow) || (a.src - b.src));
+  model.wps = wps; model.arcs = [];
+  if (!wps.length) { model.t0 = nowMs - YEAR; model.t1 = nowMs; model.span = YEAR; model.stats = { places: 0, countries: 0, km: 0 }; return; }
+  model.t0 = wps[0].time;
+  model.t1 = Math.max(nowMs, wps[wps.length - 1].time);
+  model.span = Math.max(model.t1 - model.t0, DAY);
+  let maxDur = 1, km = 0;
+  wps.forEach((w, i) => {
+    w.t = (w.time - model.t0) / model.span;
+    w.end = i < wps.length - 1 ? wps[i + 1].time : model.t1;
+    w.dur = Math.max(0, w.end - w.time);
+    w.pos = latLonToVec3(w.lat, w.lon, 1);
+    w.cont = continentOf(w.lat, w.lon);
+    w.visit = w.kind ? w.kind === 'visit' : (i > 0 && !w.isNow && w.dur > 0 && w.dur < 60 * DAY);   // home vs. short visit
+    maxDur = Math.max(maxDur, w.dur);
+  });
+  wps.forEach((w) => {
+    const q = w.dur > 0 ? Math.sqrt(w.dur / maxDur) : 0.5;
+    w.size = w.dur > 0 ? 0.7 + 0.95 * q : 1;
+    w.rc = lerp(3.5, 10, q);      // Discovery halo core radius (degrees of arc)
+    w.rs = lerp(8, 28, q);        // regional spill radius: town-scale for visits → country-scale for long stays
+  });
+  for (let i = 0; i < wps.length - 1; i++) {
+    const a = wps[i], b = wps[i + 1], angle = a.pos.angleTo(b.pos);
+    km += angle * EARTH_KM;
+    const gap = b.t - a.t;
+    const w = angle > 1e-4 ? Math.min(gap, Math.max(CONFIG.travelShare * gap, CONFIG.travelFloor)) : 0;
+    model.arcs.push({ from: i, to: i + 1, angle, tEnd: b.t, w, curve: null, mesh: null });
+  }
+  wps.forEach((w, i) => {         // bloom starts on final approach and finishes just after landing (by T = 1 at the latest)
+    const pre = i > 0 ? Math.min(0.5 * model.arcs[i - 1].w, CONFIG.bloomWindow) : 0;
+    w.b0 = w.t - pre; w.bLen = Math.min(CONFIG.bloomWindow, 1 - w.b0);
+  });
+  model.stats = {
+    places: new Set(wps.map((w) => `${w.place}|${w.country}`.toLowerCase())).size,
+    countries: new Set(wps.map((w) => w.country.toLowerCase()).filter(Boolean)).size,
+    km,
+  };
+}
+
+/** Discovery: how far waypoint i's light has bloomed at the current T (0 → dark, 1 → fully awake). */
+function bloomOf(i) {
+  const w = model.wps[i];
+  if (i === 0) return lerp(0.6, 1, smooth(T / CONFIG.bloomWindow));     // the birthplace always glows
+  if (T < w.b0) return 0;
+  if (w.bLen <= 1e-9 || T >= w.b0 + w.bLen) return 1;
+  return smooth((T - w.b0) / w.bLen);
+}
+
+/** Everything about "where are we in the story" as a pure function of t. */
+const st = { n: 0, idx: 0, travel: null, ms: 0, lat: 0, center: new THREE.Vector3(0, 0, 1), normal: new THREE.Vector3(0, 0, 1) };
+function stateAt(t) {
+  const { wps, arcs } = model;
+  st.n = wps.length; st.travel = null; st.ms = model.t0 + t * model.span;
+  if (!st.n) return st;
+  let idx = 0;
+  for (let i = 1; i < st.n; i++) { if (wps[i].t <= t + 1e-9) idx = i; else break; }
+  st.idx = idx;
+  const a = arcs[idx];
+  if (a && a.w > 0 && a.curve) {
+    const start = a.tEnd - a.w;
+    if (t > start) { const p = clamp((t - start) / a.w); st.travel = { arc: a, p, pe: smooth(p) }; }
+  }
+  if (st.travel) {
+    st.travel.arc.curve.getPointAt(st.travel.pe, st.center);
+    st.lat = lerp(wps[a.from].lat, wps[a.to].lat, st.travel.pe);
+  } else { st.center.copy(wps[idx].pos); st.lat = wps[idx].lat; }
+  st.normal.copy(st.center).normalize();
+  return st;
+}
+function ageAt(ms) {   // whole calendar years since the first waypoint, plus a smooth fraction for the avatar
+  const b = new Date(model.t0), d = new Date(ms);
+  let years = d.getUTCFullYear() - b.getUTCFullYear();
+  if (d.getUTCMonth() < b.getUTCMonth() || (d.getUTCMonth() === b.getUTCMonth() && d.getUTCDate() < b.getUTCDate())) years--;
+  return { years: Math.max(0, years), frac: Math.max(0, (ms - model.t0) / YEAR) };
+}
+
+/* ------------------------------------------------------------------ 6. scene */
+const canvas = $('#scene');
+let renderer, scene, camera, controls, globeMat, atmoMat, glowTex;
+const markerGroup = new THREE.Group(), arcGroup = new THREE.Group();
+const gfx = { markers: [], avatar: null, comet: [], rain: null, confetti: null };
+const ARC_SEG = 128, ARC_RAD = 6;
+const UP = new THREE.Vector3(0, 1, 0);
+
+function makeGlowTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255,255,255,1)'); grad.addColorStop(0.25, 'rgba(255,255,255,0.55)');
+  grad.addColorStop(0.6, 'rgba(255,255,255,0.12)'); grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad; g.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const glowSprite = (color, scale) => {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+  s.scale.setScalar(scale); return s;
+};
+
+const GLOBE_VERT = /* glsl */`
+  varying vec2 vUv; varying vec3 vN; varying vec3 vView;
+  void main() {
+    vUv = uv;
+    vec4 wp = modelMatrix * vec4(position, 1.0);
+    vN = normalize(mat3(modelMatrix) * normal);
+    vView = cameraPosition - wp.xyz;
+    gl_Position = projectionMatrix * viewMatrix * wp;
+  }`;
+const GLOBE_FRAG = /* glsl */`
+  uniform sampler2D uMap; uniform sampler2D uMask; uniform float uHasMap; uniform float uDark;
+  uniform vec3 uSun; uniform vec3 uTint; uniform float uSeason; uniform float uHemi; uniform vec3 uActive; uniform float uPulse;
+  varying vec2 vUv; varying vec3 vN; varying vec3 vView;
+  float hash(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+  float noise(vec3 p) {
+    vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x), mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+               mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x), mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
+  }
+  float fbm(vec3 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 5; i++) { s += a * noise(p); p *= 2.03; a *= 0.5; } return s; }
+  const vec3 LUMA = vec3(0.3, 0.59, 0.11);
+  void main() {
+    vec3 n = normalize(vN), v = normalize(vView), sun = normalize(uSun);
+    vec3 base; float bump = 0.0;
+    if (uHasMap > 0.5) {
+      base = texture2D(uMap, vUv).rgb;
+      bump = clamp((dot(base, LUMA) - dot(texture2D(uMap, vUv + vec2(0.0014, 0.0009)).rgb, LUMA)) * 7.0, -0.3, 0.3);   // subtle relief from the day map
+    } else {                                 // procedural stand-in if the texture CDN is unreachable
+      float f = fbm(n * 2.4 + 3.1);
+      float land = smoothstep(0.50, 0.54, f);
+      base = mix(vec3(0.015, 0.06, 0.16), mix(vec3(0.05, 0.19, 0.10), vec3(0.30, 0.26, 0.17), smoothstep(0.56, 0.78, f)), land);
+    }
+    float lum = dot(base, LUMA);
+    float ocean = smoothstep(0.01, 0.08, base.b - max(base.r, base.g));      // water mask derived from colour
+    bump *= 1.0 - ocean;
+    float day = smoothstep(-0.25, 0.5, dot(n, sun));
+    float fres = pow(1.0 - max(dot(n, v), 0.0), 3.0);
+
+    // ---- Full Map: sunlit, seasonal
+    vec3 col = base * mix(0.07, 0.96, day) * (1.0 + bump * day) + base * vec3(0.03, 0.06, 0.14) * (1.0 - day);
+    col += vec3(0.5, 0.56, 0.62) * pow(max(dot(n, normalize(sun + v)), 0.0), 140.0) * ocean * day * 0.22;   // soft specular on water
+    col = mix(col, col * uTint * 1.3, 0.38);                                  // seasonal grade
+    float lat = n.y * uHemi;                                                  // > 0 in the active hemisphere
+    float frost = smoothstep(0.52, 0.96, lat) * clamp(-uSeason, 0.0, 1.0);
+    col = mix(col, vec3(0.80, 0.90, 1.0) * (0.25 + 0.75 * day), frost * 0.42);  // winter frost
+    col += vec3(0.11, 0.05, 0.0) * smoothstep(0.0, 0.8, lat) * clamp(uSeason, 0.0, 1.0) * day;   // summer bloom
+    col += uTint * fres * 0.45;
+
+    // ---- Discovery: black planet, day texture × light mask
+    if (uDark > 0.001) {
+      float lit = texture2D(uMask, vUv).r;
+      float ang = acos(clamp(dot(n, uActive), -1.0, 1.0));
+      float pulse = exp(-(ang * ang) / 0.0075) * uPulse;                      // the active waypoint breathes brighter
+      vec3 silhouette = vec3(0.0025, 0.0035, 0.008) + (1.0 - ocean) * vec3(0.007, 0.008, 0.012) * (0.5 + lum);   // continents barely readable
+      vec3 awake = base * (1.05 + bump) * mix(vec3(1.0), uTint * 1.25, 0.3) + vec3(1.0, 0.72, 0.38) * (lit * lit * 0.14 + pulse * 0.45);
+      vec3 dcol = mix(silhouette, awake, smoothstep(0.0, 0.62, lit)) + vec3(1.0, 0.75, 0.45) * pulse * 0.10 + uTint * fres * 0.02;
+      col = mix(col, dcol, uDark);
+    }
+    gl_FragColor = vec4(col, 1.0);
+    #include <colorspace_fragment>
+  }`;
+const ATMO_VERT = /* glsl */`
+  varying vec3 vN; varying vec3 vV;
+  void main() { vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`;
+const ATMO_FRAG = /* glsl */`
+  uniform vec3 uColor; uniform float uPower;
+  varying vec3 vN; varying vec3 vV;
+  void main() {
+    float d = clamp(-dot(normalize(vN), normalize(vV)) * 2.25, 0.0, 1.0);   // 0 at the outer edge → 1 at the globe's limb
+    gl_FragColor = vec4(uColor * pow(d, 3.0) * uPower, 1.0);
+    #include <colorspace_fragment>
+  }`;
+
+function initScene() {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x000000, 0);
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+  camera.position.set(0, 0.6, 4.2);
+  glowTex = makeGlowTexture();
+  const mobile = matchMedia('(max-width: 640px)').matches;
+
+  // Globe
+  globeMat = new THREE.ShaderMaterial({
+    vertexShader: GLOBE_VERT, fragmentShader: GLOBE_FRAG,
+    uniforms: { uMap: { value: null }, uMask: { value: null }, uHasMap: { value: 0 }, uDark: { value: 0 }, uSun: { value: new THREE.Vector3(1, 0.3, 1) }, uTint: { value: new THREE.Color('#6fb6ff') }, uSeason: { value: 0 }, uHemi: { value: 1 }, uActive: { value: new THREE.Vector3(0, 0, 1) }, uPulse: { value: 0 } },
+  });
+  scene.add(new THREE.Mesh(new THREE.SphereGeometry(1, mobile ? 48 : 96, mobile ? 32 : 64), globeMat));
+  new THREE.TextureLoader().setCrossOrigin('anonymous').load(CONFIG.earthTexture, (tex) => {
+    tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+    globeMat.uniforms.uMap.value = tex; globeMat.uniforms.uHasMap.value = 1;
+  }, undefined, () => { /* keep the procedural globe */ });
+
+  // Atmosphere
+  atmoMat = new THREE.ShaderMaterial({
+    vertexShader: ATMO_VERT, fragmentShader: ATMO_FRAG, side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    uniforms: { uColor: { value: new THREE.Color('#6fb6ff') }, uPower: { value: 1 } },
+  });
+  const atmo = new THREE.Mesh(new THREE.SphereGeometry(1.12, 48, 32), atmoMat);
+  scene.add(atmo);
+
+  // Stars
+  const starPos = new Float32Array(1100 * 3), v = new THREE.Vector3();
+  for (let i = 0; i < 1100; i++) { v.randomDirection().multiplyScalar(30 + Math.random() * 20); starPos.set([v.x, v.y, v.z], i * 3); }
+  const starGeo = new THREE.BufferGeometry(); starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xcfd9ff, size: 1.4, sizeAttenuation: false, transparent: true, opacity: 0.65, depthWrite: false })));
+
+  scene.add(arcGroup, markerGroup);
+  scene.add(new THREE.AmbientLight(0xffffff, 1.15));            // soft ambient + a key light that rides with the camera (for the avatar)
+  gfx.key = new THREE.DirectionalLight(0xffffff, 1.3); scene.add(gfx.key);
+  initMask(mobile); globeMat.uniforms.uMask.value = mask.tex;
+  buildAvatar(); buildComet(); buildWeatherParticles(); buildConfetti();
+
+  controls = new OrbitControls(camera, canvas);
+  controls.enablePan = false; controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.rotateSpeed = 0.5; controls.zoomSpeed = 0.6; controls.minDistance = 1.5; controls.maxDistance = 9; controls.autoRotateSpeed = 0.35;
+
+  resize();
+  addEventListener('resize', resize);
+}
+
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  const tl = $('#timeline').getBoundingClientRect().height || 170;
+  document.documentElement.style.setProperty('--tl-h', `${Math.round(tl)}px`);
+  camera.setViewOffset(w, h, 0, Math.round(tl * 0.42), w, h);     // nudge the globe up, clear of the timeline
+  camera.updateProjectionMatrix();
+}
+function baseDist() {
+  const vHalf = THREE.MathUtils.degToRad(camera.fov / 2), hHalf = Math.atan(Math.tan(vHalf) * camera.aspect);
+  const fill = camera.aspect < 1 ? lerp(0.98, 0.66, smooth((camera.aspect - 0.45) / 0.55)) : 0.66;
+  return clamp(1 / Math.sin(Math.min(vHalf, hHalf) * fill), 2.4, 7.5);
+}
+
+function disposeGroup(g) {
+  g.traverse((o) => { if (o.geometry && !o.userData.shared) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+  g.clear();
+}
+const dotGeo = new THREE.SphereGeometry(0.011, 16, 12), ringGeo = new THREE.RingGeometry(0.018, 0.0215, 48);
+
+const diaGeo = new THREE.OctahedronGeometry(0.015, 0);
+const VISIT_COLOR = '#bfefff', ARC_COLOR = '#ffe1a6';
+
+/* Discovery light mask — a hidden equirectangular canvas, redrawn only when the lit state changes. */
+const mask = { canvas: null, ctx: null, tex: null, sprite: null, sig: '', W: 1024, H: 512 };
+function initMask(mobile) {
+  mask.W = mobile ? 512 : 1024; mask.H = mask.W / 2;
+  mask.canvas = document.createElement('canvas'); mask.canvas.width = mask.W; mask.canvas.height = mask.H;
+  mask.ctx = mask.canvas.getContext('2d');
+  const sp = document.createElement('canvas'); sp.width = sp.height = 128;       // one cached gaussian sprite, reused for every halo
+  const g = sp.getContext('2d'), grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  for (let k = 0; k <= 12; k++) { const x = k / 12; grad.addColorStop(x, `rgba(255,255,255,${(Math.exp(-x * x * 3.2) * (1 - x ** 4)).toFixed(4)})`); }
+  g.fillStyle = grad; g.fillRect(0, 0, 128, 128);
+  mask.sprite = sp;
+  mask.tex = new THREE.CanvasTexture(mask.canvas);
+  mask.tex.wrapS = THREE.RepeatWrapping; mask.tex.generateMipmaps = false; mask.tex.minFilter = THREE.LinearFilter;
+  mask.ctx.fillStyle = '#000'; mask.ctx.fillRect(0, 0, mask.W, mask.H);
+}
+function updateMask() {
+  const { wps } = model, { ctx, W, H } = mask, b = [];
+  let sig = '', lit = 0;
+  for (let i = 0; i < wps.length; i++) {
+    b[i] = bloomOf(i); sig += Math.round(b[i] * 200) + ',';
+    lit += b[i] * (1 - Math.cos(wps[i].rs * 0.55 * Math.PI / 180)) / 2;          // spherical-cap share of the sphere
+  }
+  discovered = Math.min(100, lit * 100);
+  if (sig === mask.sig) return;
+  mask.sig = sig;
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'lighter';
+  wps.forEach((w, i) => {
+    const e = b[i]; if (e <= 0) return;
+    const x = (w.lon + 180) / 360 * W, y = (90 - w.lat) / 180 * H;
+    const stretch = 1 / Math.max(0.2, Math.cos(w.lat * Math.PI / 180));         // equirectangular: circles widen toward the poles
+    for (const [r, a] of [[w.rs, 0.62], [w.rc, 1]]) {                             // regional spill, then the bright core
+      const ry = r * e / 180 * H, rx = r * e / 360 * W * stretch;
+      ctx.globalAlpha = a * e;
+      for (const dx of [-W, 0, W]) {                                            // anti-meridian: draw the wrapped copies too
+        if (x + dx + rx < 0 || x + dx - rx > W) continue;
+        ctx.drawImage(mask.sprite, x + dx - rx, y - ry, rx * 2, ry * 2);
+      }
+    }
+  });
+  mask.tex.needsUpdate = true;
+}
+
+function rebuildScene() {
+  disposeGroup(markerGroup); disposeGroup(arcGroup); gfx.markers = [];
+  model.wps.forEach((w) => {
+    const color = new THREE.Color(w.visit ? VISIT_COLOR : stageInfo(w.stage).color);
+    const g = new THREE.Group(); g.position.copy(w.pos).multiplyScalar(1.006);
+    const dot = new THREE.Mesh(w.visit ? diaGeo : dotGeo, new THREE.MeshBasicMaterial({ color, transparent: true })); dot.userData.shared = true;   // ◆ visit · ● home
+    const glow = glowSprite(color, 0.1 * w.size);
+    const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color, transparent: true, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+    ring.userData.shared = true;
+    g.add(dot, glow, ring); markerGroup.add(g);
+    ring.lookAt(w.pos.clone().multiplyScalar(3));
+    gfx.markers.push({ g, dot, glow, ring, size: w.size });
+  });
+  model.arcs.forEach((a) => {
+    if (a.angle <= 1e-4) return;
+    const A = model.wps[a.from].pos, B = model.wps[a.to].pos;
+    let axis = new THREE.Vector3().crossVectors(A, B);
+    if (axis.lengthSq() < 1e-8) axis.crossVectors(A, Math.abs(A.y) < 0.9 ? UP : new THREE.Vector3(1, 0, 0));   // antipodal: any great circle
+    axis.normalize();
+    const peak = clamp(0.03 + a.angle * 0.16, 0.03, 0.5), pts = [];
+    for (let i = 0; i <= 64; i++) {            // slerp along the great circle + sine-bell altitude
+      const s = i / 64;
+      pts.push(A.clone().applyAxisAngle(axis, s * a.angle).multiplyScalar(1.004 + peak * Math.sin(Math.PI * s)));
+    }
+    a.curve = new THREE.CatmullRomCurve3(pts);
+    a.mesh = new THREE.Mesh(
+      new THREE.TubeGeometry(a.curve, ARC_SEG, 0.0042, ARC_RAD, false),
+      new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })
+    );
+    a.mesh.visible = false;
+    arcGroup.add(a.mesh);
+  });
+  colorArcs();
+}
+function colorArcs() {       // one warm colour, or grouped by life chapter when the toggle is on
+  model.arcs.forEach((a) => { if (a.mesh) a.mesh.material.color.set(chapters ? stageInfo(model.wps[a.to].stage).color : ARC_COLOR).lerp(_colorWhite, chapters ? 0.15 : 0); });
+}
+
+/* Low-poly humanoid built from primitives; poseAvatar() reshapes it from infant to adult. */
+function buildAvatar() {
+  const g = new THREE.Group(), body = new THREE.Group(), upper = new THREE.Group();
+  const skin = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, roughness: 0.8, metalness: 0, emissive: 0xffffff, emissiveIntensity: 0.4 });
+  const limbGeo = new THREE.CylinderGeometry(0.5, 0.4, 1, 6); limbGeo.translate(0, -0.5, 0);     // hangs down from its joint
+  const torsoGeo = new THREE.CylinderGeometry(0.5, 0.36, 1, 6); torsoGeo.translate(0, 0.5, 0);   // rises from the hip
+  const headGeo = new THREE.IcosahedronGeometry(0.5, 1);
+  const mk = (geo, parent) => { const m = new THREE.Mesh(geo, skin); parent.add(m); return m; };
+  const parts = { legL: mk(limbGeo, body), legR: mk(limbGeo, body), torso: mk(torsoGeo, upper), head: mk(headGeo, upper), armL: mk(limbGeo, upper), armR: mk(limbGeo, upper) };
+  body.add(upper);
+  const base = new THREE.Mesh(new THREE.RingGeometry(0.03, 0.036, 40), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+  base.rotation.x = -Math.PI / 2; base.position.y = 0.002;
+  const halo = glowSprite(0xffffff, 0.16); halo.material.opacity = 0.55;
+  g.add(body, base, halo); scene.add(g);
+  gfx.avatar = { g, body, upper, parts, skin, base, halo, color: new THREE.Color() };
+}
+const AGE_KEYS = [[0, 0], [1, 0.05], [3, 0.2], [8, 0.45], [13, 0.7], [18, 0.95], [21, 1]];     // age → maturity
+function maturityAt(age) {
+  for (let i = 1; i < AGE_KEYS.length; i++) {
+    const [a0, m0] = AGE_KEYS[i - 1], [a1, m1] = AGE_KEYS[i];
+    if (age <= a1) return lerp(m0, m1, (age - a0) / (a1 - a0));
+  }
+  return 1;
+}
+function poseAvatar(age, bell, theta) {
+  const av = gfx.avatar, p = av.parts, m = maturityAt(age);
+  const head = lerp(0.30, 0.135, m), legs = lerp(0.24, 0.47, m), torso = 1 - head - legs, wide = lerp(1.5, 1, m);   // big-headed baby → adult proportions
+  const crawl = 1 - smooth((age - 0.8) / 0.9);                                 // on all fours until about 18 months
+  const height = lerp(0.36, 1, m) * (0.97 + 0.03 * T);                          // full height exactly at NOW
+  const hip = legs * (1 - 0.72 * crawl);
+  const swing = Math.sin(theta * 9) * 0.38 * (1 - crawl) * (1 - bell);         // walk cycle, driven by T
+  av.body.scale.setScalar(CONFIG.avatarHeight * height);
+  p.legL.position.set(0.065 * wide, hip, 0); p.legR.position.set(-0.065 * wide, hip, 0);
+  p.legL.scale.set(0.09 * wide, legs, 0.09 * wide); p.legR.scale.copy(p.legL.scale);
+  p.legL.rotation.x = crawl * 1.35 + bell * 1.2 + swing; p.legR.rotation.x = crawl * 1.35 + bell * 1.2 - swing;
+  av.upper.position.y = hip; av.upper.rotation.x = crawl * 1.05 + bell * 1.15;   // lean: crawling, or flying along an arc
+  p.torso.scale.set(0.30 * wide, torso, 0.19 * wide);
+  p.head.scale.set(head * 0.94, head, head * 0.94); p.head.position.y = torso + head * 0.46;
+  const armLen = torso * 0.95 + legs * 0.12;
+  p.armL.position.set(0.19 * wide, torso * 0.95, 0); p.armR.position.set(-0.19 * wide, torso * 0.95, 0);
+  p.armL.scale.set(0.07 * wide, armLen, 0.07 * wide); p.armR.scale.copy(p.armL.scale);
+  p.armL.rotation.set(-crawl * 1.05 - swing, 0, 0.14); p.armR.rotation.set(-crawl * 1.05 + swing, 0, -0.14);
+  av.color.copy(C_YOUNG).lerp(C_GROWN, smooth(age / 30));                      // warm orange → calm blue
+  av.skin.color.copy(av.color).lerp(_colorWhite, 0.45); av.skin.emissive.copy(av.color);
+  av.base.material.color.copy(av.color); av.halo.material.color.copy(av.color);
+  av.halo.position.y = CONFIG.avatarHeight * height * 0.55;
+}
+function buildComet() {
+  for (let i = 0; i < 9; i++) {
+    const s = glowSprite(i ? 0xffe2a8 : 0xffffff, i ? 0.06 * (1 - i / 10) : 0.085);
+    s.material.opacity = i ? 0.75 * (1 - i / 9) : 1; s.visible = false; scene.add(s); gfx.comet.push(s);
+  }
+}
+function buildWeatherParticles() {      // rain + snow share ONE Points object, capped at 50
+  const n = CONFIG.weatherParticles, geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  const seeds = Array.from({ length: n }, () => ({ a: (Math.random() - 0.5) * 0.2, b: (Math.random() - 0.5) * 0.2, ph: Math.random(), sw: Math.random() * 6.28 }));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ map: glowTex, size: 0.02, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending }));
+  pts.frustumCulled = false; pts.visible = false; scene.add(pts);
+  gfx.rain = { pts, seeds, e1: new THREE.Vector3(), e2: new THREE.Vector3() };
+}
+function buildConfetti() {
+  const n = CONFIG.confettiParticles, geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  const colors = new Float32Array(n * 3), c = new THREE.Color(), palette = ['#f6c453', '#ff6fae', '#5aa9ff', '#4ade9b', '#ffffff'];
+  for (let i = 0; i < n; i++) { c.set(palette[i % palette.length]); colors.set([c.r, c.g, c.b], i * 3); }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ map: glowTex, size: 0.022, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  pts.frustumCulled = false; pts.visible = false; scene.add(pts);
+  gfx.confetti = { pts, vel: Array.from({ length: n }, () => new THREE.Vector3()), origin: new THREE.Vector3(), normal: new THREE.Vector3(), life: 9 };
+}
+function burstConfetti() {
+  if (reduced) return;
+  const c = gfx.confetti; c.origin.copy(gfx.avatar.g.position).addScaledVector(st.normal, 0.09); c.normal.copy(st.normal); c.life = 0;
+  c.vel.forEach((v) => v.randomDirection().multiplyScalar(0.05 + Math.random() * 0.09).addScaledVector(c.normal, 0.09));
+  c.pts.visible = true;
+}
+
+/* ------------------------------------------------------------------ 7. per-frame state */
+let playing = false, speed = 1, tween = null, ambient = 0, lastAge = null;
+let follow = true, camBlend = 1, camFly = null, orbit = null, lastInteract = 0;
+let mode = store.get('journey:mode') === 'full' ? 'full' : 'dark';     // both modes share T, playback and every function below
+let darkAmt = mode === 'dark' ? 1 : 0, chapters = false, discovered = 0;
+const fired = new Set();                                               // milestone ids already flashed
+const camFrom = new THREE.Vector3(), camGoal = new THREE.Vector3();
+const _v = new THREE.Vector3(), _v2 = new THREE.Vector3(), _q = new THREE.Quaternion(), _qi = new THREE.Quaternion();
+const _e1 = new THREE.Vector3(), _e2 = new THREE.Vector3(), _n = new THREE.Vector3(), _f = new THREE.Vector3(), _x = new THREE.Vector3(), _m4 = new THREE.Matrix4();
+const _colorWhite = new THREE.Color('#ffffff'), _tint = new THREE.Color();
+const C_NEUTRAL = new THREE.Color('#6fb6ff'), C_YOUNG = new THREE.Color('#ff8a3d'), C_GROWN = new THREE.Color('#58b4ff');
+const SEASON_COLORS = [new THREE.Color('#ffc48a'), new THREE.Color('#ffa24d'), new THREE.Color('#b5e2ff'), new THREE.Color('#8fe6a2')];   // summer · autumn amber · winter · spring green
+
+function tangentBasis(n, e1, e2) {
+  e1.crossVectors(Math.abs(n.y) > 0.95 ? _v2.set(1, 0, 0) : UP, n).normalize();
+  e2.crossVectors(n, e1).normalize();
+}
+function flash(text) {
+  const el = $('#flash'); el.textContent = text; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  $('#live').textContent = text;
+}
+function checkMilestones(reached) {       // Discovery only; each fires once per run
+  const { wps } = model, hits = [];
+  const add = (id, text) => { if (!fired.has(id)) { fired.add(id); hits.push(text); } };
+  if (reached >= 1) add('country', `First country lit${wps[0].country ? ` — ${flag(wps[0].country)} ${wps[0].country}` : ''}`);
+  for (let i = 1; i < reached; i++) if (wps[i].cont !== wps[0].cont) { add('continent', `First continent crossed — ${wps[i].cont}`); break; }
+  for (const k of [3, 5, 10, 15, 20, 30, 50]) if (reached >= k) add(`places${k}`, `${k} places awakened`);
+  if (hits.length) flash(hits[hits.length - 1]);
+}
+
+function applyState(dt) {
+  stateAt(T);
+  const { wps, arcs } = model, n = st.n;
+  const target = mode === 'dark' ? 1 : 0;
+  darkAmt = reduced ? target : clamp(darkAmt + Math.sign(target - darkAmt) * dt / 0.7);     // mode cross-fade
+  const dark = smooth(darkAmt);
+  globeMat.uniforms.uDark.value = dark;
+  gfx.avatar.g.visible = n > 0;
+  if (!n) { gfx.comet.forEach((s) => (s.visible = false)); gfx.rain.pts.visible = false; discovered = 0; return; }
+  const age = ageAt(st.ms), season = seasonAt(st.ms, st.lat);
+  let reachedCount = 0;
+
+  // Waypoint markers — reached ones glow, the active one pulses hardest; in Discovery the unvisited do not exist yet
+  gfx.markers.forEach((m, i) => {
+    const reached = wps[i].t <= T + 1e-9, active = i === st.idx && !st.travel;
+    if (reached) reachedCount++;
+    m.g.visible = reached || mode !== 'dark';
+    const phase = reduced ? 0.4 : (ambient * (active ? 0.75 : 0.45) + i * 0.37) % 1;
+    m.dot.material.opacity = reached ? 1 : 0.35;
+    m.glow.material.opacity = reached ? (active ? 1 : 0.6) : 0.16;
+    m.glow.scale.setScalar(0.1 * m.size * (active ? 1.45 : 1) * (1 + (reached && !reduced ? 0.1 * Math.sin(ambient * 2.4 + i) : 0)));
+    m.ring.visible = reached;
+    m.ring.scale.setScalar((1 + phase * (active ? 3.2 : 1.8)) * m.size);
+    m.ring.material.opacity = (1 - phase) * (active ? 0.9 : 0.4);
+  });
+
+  // Arcs — future: hidden · active: drawn to the comet at 1.0 · past: dimmed to 0.3
+  arcs.forEach((a, k) => {
+    if (!a.mesh) return;
+    let frac = 0, op = 0;
+    if (k < st.idx) { frac = 1; op = k === st.idx - 1 ? lerp(1, 0.3, clamp((T - a.tEnd) / CONFIG.arcFade)) : 0.3; }
+    else if (k === st.idx && st.travel) { frac = st.travel.pe; op = 1; }
+    a.mesh.visible = frac > 0;
+    a.mesh.geometry.setDrawRange(0, Math.ceil(frac * ARC_SEG) * ARC_RAD * 6);
+    a.mesh.material.opacity = op;
+  });
+
+  // Comet on the active arc
+  gfx.comet.forEach((s, i) => {
+    s.visible = Boolean(st.travel) && st.travel.p < 1;
+    if (s.visible) st.travel.arc.curve.getPointAt(clamp(st.travel.pe - i * 0.016), s.position);
+  });
+
+  // Avatar — walks a slow circle around the active waypoint, or flies along the arc; grows with age
+  const av = gfx.avatar, bell = st.travel ? Math.sin(Math.PI * st.travel.pe) : 0;
+  const theta = T * Math.PI * 2 * CONFIG.orbitTurns, r = 0.06 * (1 - bell);
+  tangentBasis(st.normal, _e1, _e2);
+  av.g.position.copy(st.center).addScaledVector(_e1, Math.cos(theta) * r).addScaledVector(_e2, Math.sin(theta) * r);
+  av.g.position.setLength(Math.max(av.g.position.length(), 1.008));
+  _n.copy(av.g.position).normalize();
+  if (st.travel) st.travel.arc.curve.getTangentAt(st.travel.pe, _f);
+  else _f.copy(_e1).multiplyScalar(-Math.sin(theta)).addScaledVector(_e2, Math.cos(theta));
+  _f.addScaledVector(_n, -_f.dot(_n)); if (_f.lengthSq() < 1e-8) _f.copy(_e1); _f.normalize();
+  _x.crossVectors(_n, _f).normalize();
+  av.g.quaternion.setFromRotationMatrix(_m4.makeBasis(_x, _n, _f));              // feet on the ground, facing the way it walks
+  poseAvatar(age.frac, bell, theta);
+
+  // Season: summer warmth, autumn amber, winter cool, spring green — by date and the active hemisphere
+  let wsum = 0; _tint.setRGB(0, 0, 0);
+  SEASON_COLORS.forEach((c, i) => { const w = Math.max(0, Math.cos(season.phase - i * Math.PI / 2)); wsum += w; _tint.r += c.r * w; _tint.g += c.g * w; _tint.b += c.b * w; });
+  _tint.multiplyScalar(1 / wsum);
+  const tint = _tint.lerpColors(C_NEUTRAL, _tint.clone(), clamp(Math.abs(st.lat) / 35, 0.2, 1));   // seasons fade toward the equator
+  globeMat.uniforms.uTint.value.copy(tint); globeMat.uniforms.uSeason.value = season.s; globeMat.uniforms.uHemi.value = st.lat >= 0 ? 1 : -1;
+  atmoMat.uniforms.uColor.value.copy(tint); atmoMat.uniforms.uPower.value = (0.62 + 0.14 * season.s) * (1 - 0.93 * dark);
+  const decl = 23.44 * Math.sin(2 * Math.PI * ((st.ms - Date.UTC(new Date(st.ms).getUTCFullYear(), 0, 1)) / DAY - 81) / 365.25);
+  const focusLon = Math.atan2(st.normal.z, -st.normal.x) * 180 / Math.PI - 180;
+  latLonToVec3(decl, focusLon + 38, 1, globeMat.uniforms.uSun.value);     // sun tilts with the calendar, keeps the story in daylight
+
+  // Discovery light: mask redraws only when a bloom value changes; the active waypoint pulses in the shader
+  updateMask();
+  globeMat.uniforms.uActive.value.copy(wps[st.idx].pos);
+  globeMat.uniforms.uPulse.value = st.travel ? 0 : bloomOf(st.idx) * (reduced ? 0.8 : 0.6 + 0.4 * Math.sin(ambient * 2.6));
+  if (mode === 'dark' && T > 0) checkMilestones(reachedCount);
+
+  // Confetti when a whole year of life ticks over (either direction)
+  if (lastAge !== null && age.years !== lastAge && Math.abs(age.years - lastAge) === 1 && !tween) burstConfetti();
+  lastAge = age.years;
+  const cf = gfx.confetti;
+  if (cf.pts.visible) {
+    cf.life += dt;
+    if (cf.life > 1.1 || reduced) cf.pts.visible = false;
+    else {
+      const pos = cf.pts.geometry.attributes.position;
+      cf.vel.forEach((v, i) => { _v.copy(cf.origin).addScaledVector(v, cf.life).addScaledVector(cf.normal, -0.11 * cf.life * cf.life); pos.setXYZ(i, _v.x, _v.y, _v.z); });
+      pos.needsUpdate = true; cf.pts.material.opacity = 1 - cf.life / 1.1;
+    }
+  }
+
+  // Rain / snow over the active waypoint (≤ 50 points)
+  const wx = st.travel ? null : weatherOf(wps[st.idx]), kind = wx ? precipKind(wx.code) : null, rain = gfx.rain;
+  rain.pts.visible = Boolean(kind) && !reduced;
+  if (rain.pts.visible) {
+    const snow = kind === 'snow', pos = rain.pts.geometry.attributes.position, c = wps[st.idx].pos;
+    tangentBasis(st.normal, rain.e1, rain.e2);
+    rain.seeds.forEach((s, i) => {
+      const fall = (s.ph + ambient * (snow ? 0.22 : 0.9)) % 1, sway = snow ? Math.sin(ambient * 1.3 + s.sw) * 0.012 : 0;
+      _v.copy(c).multiplyScalar(1.01 + 0.17 * (1 - fall)).addScaledVector(rain.e1, s.a + sway).addScaledVector(rain.e2, s.b);
+      pos.setXYZ(i, _v.x, _v.y, _v.z);
+    });
+    pos.needsUpdate = true;
+    rain.pts.material.size = snow ? 0.024 : 0.013; rain.pts.material.color.set(snow ? 0xffffff : 0x8fc7ff);
+  }
+
+  ui.season = season; ui.age = age;
+}
+
+/* ---- camera: follows the story (pure function of T); fly-to, finish orbit and idle drift are free-look extras */
+function cameraGoal(out) {
+  let zoom = 1;
+  if (st.travel && reduced) out.copy(model.wps[st.travel.p < 0.5 ? st.travel.arc.from : st.travel.arc.to].pos);   // instant cut, no fly-to
+  else { out.copy(st.normal); if (st.travel) zoom = 1 + 0.34 * Math.sin(Math.PI * st.travel.pe) * Math.min(1, st.travel.arc.angle / 1.2); }
+  out.y -= 0.28;                 // look from a little to the south so the figure stands upright on screen
+  return out.normalize().multiplyScalar(baseDist() * zoom);
+}
+function blendCamera(from, goal, e) {
+  const a = _v.copy(from).normalize(), b = _v2.copy(goal).normalize();
+  _q.setFromUnitVectors(a, b); _qi.identity().slerp(_q, e);
+  camera.position.copy(a).applyQuaternion(_qi).multiplyScalar(lerp(from.length(), goal.length(), e));
+  camera.up.set(0, 1, 0); camera.lookAt(0, 0, 0);
+}
+function updateCamera(dt, now) {
+  gfx.key.position.copy(camera.position);
+  if (orbit) {                                   // Discovery ending shot: one slow lap around the archipelago of light
+    const el = (now - orbit.t0) / 1000;
+    if (el >= orbit.dur) { orbit = null; lastInteract = 0; }
+    else { latLonToVec3(orbit.lat, orbit.lon0 + 360 * el / orbit.dur, orbit.dist, camGoal); blendCamera(orbit.from, camGoal, smooth(el / 1.8)); return; }
+  }
+  if (camFly) {                                  // click-to-focus
+    camFly.k = reduced ? 1 : Math.min(1, camFly.k + dt / 1.0);
+    blendCamera(camFly.from, camFly.to, smooth(camFly.k));
+    if (camFly.k >= 1) camFly = null;
+    return;
+  }
+  if (follow && st.n) {
+    cameraGoal(camGoal);
+    if (camBlend < 1) { camBlend = reduced ? 1 : Math.min(1, camBlend + dt / 0.9); blendCamera(camFrom, camGoal, smooth(camBlend)); }
+    else { camera.position.copy(camGoal); camera.up.set(0, 1, 0); camera.lookAt(0, 0, 0); }
+  } else {
+    controls.autoRotate = !reduced && !pointer.down && ui.sheet === null && now - lastInteract > 3500;   // gentle drift, pauses on interaction
+    controls.update();
+  }
+}
+function setFollow(on) {
+  if (on) { camFly = null; orbit = null; if (!follow) { camFrom.copy(camera.position); camBlend = 0; } }
+  follow = on;
+  $('#followBtn').setAttribute('aria-pressed', String(on));
+}
+function freeLook() { camFly = null; orbit = null; lastInteract = performance.now(); setFollow(false); }
+function flyTo(i) {
+  setFollow(false); orbit = null; lastInteract = performance.now();
+  const to = model.wps[i].pos.clone(); to.y -= 0.28; to.normalize().multiplyScalar(baseDist());
+  camFly = { from: camera.position.clone(), to, k: 0 };
+}
+function startFinish() {
+  playing = false; tween = null; syncPlayButton(); closeSheet(); setFollow(false); camFly = null;
+  const c = new THREE.Vector3(); model.wps.forEach((w) => c.add(w.pos));
+  const lat = c.lengthSq() > 1e-6 ? clamp(Math.asin(clamp(c.normalize().y, -1, 1)) * 180 / Math.PI, -30, 30) : 15;
+  const p = camera.position, lon0 = Math.atan2(p.z, -p.x) * 180 / Math.PI - 180, dist = Math.min(baseDist() * 1.2, 8.5);
+  if (reduced) { latLonToVec3(lat, lon0, dist, camera.position); camera.lookAt(0, 0, 0); return; }     // one pulled-back still instead of an orbit
+  orbit = { t0: performance.now(), dur: 20, from: camera.position.clone(), lat, lon0, dist };
+}
+function setMode(m) {
+  mode = m === 'full' ? 'full' : 'dark'; store.set('journey:mode', mode);
+  document.body.classList.toggle('dark', mode === 'dark');
+  document.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+  hideTooltip(); ui.dirty = true;                  // T, playing and speed are untouched
+}
+
+function setT(v) { T = clamp(v); ui.dirty = true; }
+function tweenTo(target, ms = 1100) {
+  playing = false; syncPlayButton(); setFollow(true);
+  if (reduced) { tween = null; setT(target); return; }
+  tween = { from: T, to: clamp(target), start: performance.now(), ms };
+}
+function setPlaying(on) {
+  tween = null;
+  if (on && T >= 1) { setT(0); fired.clear(); }
+  playing = on && model.wps.length > 0;
+  if (playing) setFollow(true);
+  syncPlayButton();
+}
+
+let lastFrame = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.1, (now - lastFrame) / 1000); lastFrame = now; ambient += dt;
+  if (tween) {
+    const k = clamp((now - tween.start) / tween.ms);
+    setT(lerp(tween.from, tween.to, smooth(k)));
+    if (k >= 1) tween = null;
+  } else if (playing) {
+    setT(T + dt * speed / CONFIG.playSeconds);
+    if (T >= 1) { playing = false; syncPlayButton(); }
+  }
+  applyState(dt);
+  updateCamera(dt, now);
+  renderer.render(scene, camera);
+  if (ui.dirty) renderUI();
+  if (ui.pinned !== null) placeTooltipAtWaypoint(ui.pinned);
+}
+
+/* ------------------------------------------------------------------ 8. UI */
+const ui = { dirty: true, season: null, age: null, pinned: null, hover: null, sheet: null, lastIdx: -1, cache: {} };
+const setText = (id, text) => { if (ui.cache[id] !== text) { ui.cache[id] = text; $(id).textContent = text; } };
+const scrub = $('#scrub');
+
+function renderUI() {
+  ui.dirty = false;
+  const { wps } = model;
+  scrub.value = String(Math.round(T * 100000));
+  $('#fill').style.width = `${T * 100}%`;
+  $('#discChip').hidden = mode !== 'dark';
+  setText('#discChip', `World discovered: ${discovered < 1 ? discovered.toFixed(2) : discovered.toFixed(1)}%`);
+  $('#finishBtn').hidden = !(mode === 'dark' && T >= 1 && wps.length > 1);
+  if (!wps.length) {
+    setText('#chapterText', 'No places yet — open “Edit Journey”'); setText('#dateOut', '—'); setText('#ageOut', ''); setText('#seasonChip', '—'); setText('#weatherChip', '—');
+    return;
+  }
+  const w = wps[st.idx], info = stageInfo(w.stage), dest = st.travel ? wps[st.travel.arc.to] : null;
+  const date = T >= 1 ? 'Today' : fmtDate(st.ms);
+  setText('#dateOut', date);
+  const born = wps[0].stage === 'birth';
+  setText('#ageOut', `${born ? `Age ${ui.age.years}` : `Year ${ui.age.years + 1}`} · ${dest ? `en route to ${dest.place}` : w.place}`);
+  scrub.setAttribute('aria-valuetext', `${date}, ${born ? `age ${ui.age.years}` : `year ${ui.age.years + 1}`}, ${dest ? `travelling to ${dest.place}` : w.place}`);
+  setText('#chapterText', dest ? `En route → ${dest.place}` : `${info.label} · ${w.place}`);
+  $('#chapterDot').style.setProperty('--c', (dest ? stageInfo(dest.stage) : info).color);
+  setText('#seasonChip', `${ui.season.emoji} ${ui.season.name} · ${ui.season.hemi}`);
+  const wx = weatherOf(w);
+  if (dest) setText('#weatherChip', '✈️ In the air');
+  else if (wx) { const d = describeWeather(wx); setText('#weatherChip', `${d.emoji} ${d.temp} · ${wx.kind === 'live' ? 'now' : 'on arrival'}${wx.simulated ? ' ≈' : ''}`); }
+  else setText('#weatherChip', '… weather');
+
+  if (ui.pinEls) ui.pinEls.forEach((el, i) => { el.classList.toggle('reached', wps[i].t <= T + 1e-9); el.classList.toggle('active', i === st.idx && !st.travel); });
+  if (st.idx !== ui.lastIdx) {
+    ui.lastIdx = st.idx;
+    $('#live').textContent = `${info.label}: ${w.place}${w.country ? ', ' + w.country : ''}, ${w.isNow ? 'today' : fmtDate(w.time)}.`;
+  }
+  if (mode === 'dark' && !tween) {                 // Discovery: only the active waypoint has a card; unvisited ones have nothing
+    if (ui.sheet !== null && ui.sheet !== st.idx) closeSheet();
+    if (ui.hover !== null && wps[ui.hover].t > T) hideTooltip();
+  }
+  if (ui.sheet !== null) fillDetails($('#sheetBody'), ui.sheet);
+  if (ui.hover !== null || ui.pinned !== null) fillDetails($('#tooltip'), ui.pinned ?? ui.hover);
+}
+const cardAllowed = (i) => mode !== 'dark' || i === st.idx;
+
+function detailsHTML(i) {
+  const w = model.wps[i], info = stageInfo(w.stage), born = model.wps[0].stage === 'birth';
+  const showWx = cardAllowed(i), wx = showWx ? weatherOf(w) : null, season = seasonAt(w.time, w.lat);
+  const dates = w.isNow ? 'Today' : `${fmtDate(w.time)} → ${w.end >= model.t1 ? 'Present' : fmtDate(w.end)}`;
+  const dur = w.isNow ? 'Present day' : humanDuration(w.dur);
+  const ageTxt = born ? (i === 0 ? 'Newborn' : `${humanDuration(w.time - model.t0)} old on arrival`) : `Year ${ageAt(w.time).years + 1} of the journey`;
+  let chip = '';
+  if (showWx && !wx) chip = '<span class="chip">… loading weather</span>';
+  else if (wx) {
+    const d = describeWeather(wx), range = typeof wx.tmax === 'number' && typeof wx.tmin === 'number' ? ` · ↑${Math.round(wx.tmax)}° ↓${Math.round(wx.tmin)}°` : '';
+    chip = `<span class="chip">${d.emoji} ${d.temp} · ${esc(d.label)}${range}</span> <span style="color:var(--muted);font-size:11.5px">${wx.kind === 'live' ? 'right now' : 'on arrival day'}${wx.simulated ? ' (simulated)' : ''}</span>`;
+  }
+  return `
+    <div class="flex items-center gap-2 mb-1 flex-wrap"><span class="chip"><span class="dot" style="--c:${info.color}"></span>${esc(info.label)}</span><span class="chip">${w.visit ? '◆ Short visit' : '● Home'}</span></div>
+    <h3 class="wp-title">${esc(w.place)}${w.country ? ` <span style="color:var(--muted);font-family:var(--sans);font-size:13px">${flag(w.country)} ${esc(w.country)}</span>` : ''}</h3>
+    <dl class="wp-meta">
+      <dt>Dates</dt><dd>${dates}</dd>
+      <dt>Age</dt><dd>${ageTxt}</dd>
+      <dt>Stay</dt><dd>${dur}</dd>
+      <dt>Season</dt><dd>${season.emoji} ${season.name}</dd>
+    </dl>
+    ${w.note ? `<p class="wp-note">“${esc(w.note)}”</p>` : ''}
+    ${chip ? `<div class="mt-2 flex items-center gap-2 flex-wrap">${chip}</div>` : ''}`;
+}
+function fillDetails(el, i) {
+  if (!model.wps[i]) return;
+  const html = detailsHTML(i);
+  if (el._html !== html) { el._html = html; el.innerHTML = html; }
+}
+
+const tooltip = $('#tooltip');
+function placeTooltip(x, y) {
+  const r = tooltip.getBoundingClientRect(), pad = 12;
+  let tx = x + 18, ty = y - r.height - 14;
+  if (tx + r.width > innerWidth - pad) tx = x - r.width - 18;
+  if (ty < pad) ty = y + 20;
+  tooltip.style.transform = `translate3d(${Math.round(clamp(tx, pad, innerWidth - r.width - pad))}px, ${Math.round(clamp(ty, pad, innerHeight - r.height - pad))}px, 0)`;
+}
+function screenOf(i, out) {     // waypoint → pixel position (null when it is behind the globe)
+  const p = model.wps[i].pos;
+  if (p.dot(camera.position) < 1.02) return null;
+  _v.copy(p).project(camera);
+  out.x = (_v.x * 0.5 + 0.5) * innerWidth; out.y = (-_v.y * 0.5 + 0.5) * innerHeight;
+  return out;
+}
+const _scr = { x: 0, y: 0 };
+function placeTooltipAtWaypoint(i) {
+  if (!model.wps[i]) { hideTooltip(); return; }
+  const s = screenOf(i, _scr);
+  if (s) placeTooltip(s.x, s.y); else placeTooltip(innerWidth / 2, innerHeight / 2);
+}
+function showTooltip(i, x, y, pinned = false) {
+  ui.hover = pinned ? null : i; ui.pinned = pinned ? i : null;
+  fillDetails(tooltip, i); tooltip.classList.add('show');
+  if (pinned) placeTooltipAtWaypoint(i); else placeTooltip(x, y);
+}
+function hideTooltip() { ui.hover = null; ui.pinned = null; tooltip.classList.remove('show'); }
+
+const sheet = $('#sheet');
+function openSheet(i) {
+  ui.sheet = i; fillDetails($('#sheetBody'), i);
+  sheet.classList.add('open'); sheet.removeAttribute('inert'); sheet.setAttribute('aria-hidden', 'false');
+}
+function closeSheet() { ui.sheet = null; sheet.classList.remove('open'); sheet.setAttribute('inert', ''); sheet.setAttribute('aria-hidden', 'true'); }
+function openDetails(i) { hideTooltip(); openSheet(i); }
+
+function pickWaypoint(x, y, radius) {
+  let best = null, bestD = radius * radius;
+  model.wps.forEach((w, i) => {
+    if (mode === 'dark' && w.t > T) return;          // Discovery: nothing is clickable until it has been visited
+    const s = screenOf(i, _scr); if (!s) return;
+    const d = (s.x - x) ** 2 + (s.y - y) ** 2;
+    if (d < bestD) { bestD = d; best = i; }
+  });
+  return best;
+}
+function buildLegend() {
+  const stages = [...new Set(model.wps.map((w) => w.stage))];
+  $('#legend').innerHTML = `<span><i style="--c:${STAGES.birth.color}"></i>Home</span><span><i class="dia" style="--c:${VISIT_COLOR}"></i>Short visit</span>`
+    + (chapters ? stages.map((s) => `<span><i style="--c:${stageInfo(s).color}"></i>${esc(stageInfo(s).label)}</span>`).join('') : '');
+}
+
+function buildTimeline() {
+  const { wps } = model, pins = $('#pins'), bands = $('#bands'), ticks = $('#ticks');
+  pins.innerHTML = ''; bands.innerHTML = ''; ticks.innerHTML = ''; ui.pinEls = [];
+  wps.forEach((w, i) => {
+    const info = stageInfo(w.stage), next = i < wps.length - 1 ? wps[i + 1].t : 1;
+    const band = document.createElement('span');
+    band.style.cssText = `left:${w.t * 100}%;width:${Math.max(0, next - w.t) * 100}%;--c:${info.color}`;
+    bands.appendChild(band);
+    const pin = document.createElement('button');
+    pin.className = w.visit ? 'pin visit' : 'pin'; pin.type = 'button'; pin.style.cssText = `left:${w.t * 100}%;--c:${info.color}`;
+    pin.setAttribute('aria-label', `${w.place}${w.country ? ', ' + w.country : ''} — ${info.label}, ${w.isNow ? 'today' : fmtDate(w.time)}. Jump here and show details.`);
+    pin.addEventListener('click', () => { tweenTo(w.t); openDetails(i); });
+    pins.appendChild(pin); ui.pinEls.push(pin);
+  });
+  if (wps.length) {
+    const y0 = new Date(model.t0).getUTCFullYear(), y1 = new Date(model.t1).getUTCFullYear();
+    const maxLabels = Math.max(2, Math.floor(ticks.getBoundingClientRect().width / 46));
+    const step = [1, 2, 5, 10, 20, 25, 50, 100].find((s) => (y1 - y0) / s <= maxLabels) || 100;
+    for (let y = Math.ceil(y0 / step) * step; y <= y1; y += step) {
+      const t = (Date.UTC(y, 0, 1) - model.t0) / model.span;
+      if (t < 0.012 || t > 0.988) continue;
+      const el = document.createElement('span'); el.style.left = `${t * 100}%`; el.textContent = y; ticks.appendChild(el);
+    }
+  }
+  buildLegend();
+  const s = model.stats;
+  $('#stats').innerHTML = `<b>${s.places}</b> place${s.places === 1 ? '' : 's'} · <b>${s.countries}</b> countr${s.countries === 1 ? 'y' : 'ies'} · <b>${num(s.km)}</b> km travelled`;
+}
+
+function syncPlayButton() {
+  $('#icoPlay').hidden = playing; $('#icoPause').hidden = !playing;
+  $('#play').setAttribute('aria-label', playing ? 'Pause' : 'Play');
+}
+
+/** Rebuild model + scene + timeline after any data change, keeping the scrubber on the same date. */
+function rebuildAll() {
+  const keepMs = model.wps.length ? model.t0 + T * model.span : null;
+  buildModel(); rebuildScene(); buildTimeline();
+  T = keepMs === null ? 0 : clamp((keepMs - model.t0) / model.span);
+  lastAge = null; fired.clear(); mask.sig = ''; ui.lastIdx = -1; ui.cache = {}; hideTooltip(); closeSheet();
+  $('#personName').textContent = journey.name;
+  document.title = `The Journey — ${journey.name}`;
+  ui.dirty = true; resize();
+}
+
+/* ------------------------------------------------------------------ 9. editor */
+const editor = $('#editor'), edStatus = $('#edStatus');
+let editing = null;      // index into journey.waypoints, or null when adding
+const status = (msg, err = false) => { edStatus.textContent = msg; edStatus.classList.toggle('err', err); };
+
+function openEditor() {
+  editor.classList.add('open'); editor.removeAttribute('inert'); editor.setAttribute('aria-hidden', 'false');
+  $('#editBtn').setAttribute('aria-expanded', 'true');
+  $('#edName').value = journey.name; $('#edTokenRow').hidden = !api.editProtected; $('#edReset').hidden = !(api.mode === 'local' && store.get(LS_DRAFT));
+  $('#edToken').value = sessionStorage.getItem('journey:token') || '';
+  renderEditorList(); resetForm(); closeSheet();
+  $('#editorClose').focus({ preventScroll: true });
+}
+function closeEditor() {
+  editor.classList.remove('open'); editor.setAttribute('inert', ''); editor.setAttribute('aria-hidden', 'true');
+  $('#editBtn').setAttribute('aria-expanded', 'false'); $('#editBtn').focus({ preventScroll: true });
+}
+function renderEditorList() {
+  const items = journey.waypoints.map((w, i) => ({ w, i, time: wpTime(w) })).sort((a, b) => (a.time - b.time) || (isNow(a.w) - isNow(b.w)) || (a.i - b.i));
+  $('#edList').innerHTML = items.map(({ w, i }) => `
+    <li>
+      <span class="dot" style="--c:${stageInfo(w.stage).color}"></span>
+      <span class="what"><span>${esc(w.place)}${w.country ? ', ' + esc(w.country) : ''}</span>
+        <small>${isNow(w) ? 'Now' : fmtDate(wpTime(w))} · ${esc(stageInfo(w.stage).label)}${hasCoords(w) ? '' : ' · ⚠ not located'}</small></span>
+      <button class="btn" type="button" data-edit="${i}" aria-label="Edit ${esc(w.place)}">Edit</button>
+      <button class="btn btn-danger" type="button" data-del="${i}" aria-label="Delete ${esc(w.place)}">Delete</button>
+    </li>`).join('') || '<li><span class="what">No waypoints yet — add the first one below.</span></li>';
+}
+function resetForm() {
+  editing = null; $('#edForm').reset(); $('#fDate').disabled = false;
+  $('#edFormTitle').textContent = 'Add a waypoint'; $('#fSubmit').textContent = 'Add waypoint'; $('#fCancel').hidden = true;
+  $('#fStage').value = 'adult';
+}
+function startEdit(i) {
+  const w = journey.waypoints[i]; if (!w) return;
+  editing = i;
+  $('#fPlace').value = w.place; $('#fCountry').value = w.country; $('#fNote').value = w.note;
+  $('#fNow').checked = isNow(w); $('#fDate').disabled = isNow(w);
+  $('#fDate').value = isNow(w) ? '' : `${String(w.year).padStart(4, '0')}-${String(w.month).padStart(2, '0')}-${String(w.day).padStart(2, '0')}`;
+  if (![...$('#fStage').options].some((o) => o.value === w.stage)) $('#fStage').add(new Option(stageInfo(w.stage).label, w.stage));
+  $('#fStage').value = w.stage;
+  $('#fKind').value = w.kind || '';
+  $('#fLat').value = hasCoords(w) ? w.lat : ''; $('#fLon').value = hasCoords(w) ? w.lon : '';
+  $('#edFormTitle').textContent = `Edit ${w.place}`; $('#fSubmit').textContent = 'Update waypoint'; $('#fCancel').hidden = false;
+  $('#fPlace').focus();
+}
+
+/** Every add / edit / delete: locate → redraw → save via POST /api/journey. */
+async function commitChange(verb) {
+  renderEditorList(); status('Locating and saving…');
+  const geo = await resolveCoords();
+  renderEditorList(); rebuildAll();
+  const res = await saveJourney();
+  $('#edReset').hidden = !(api.mode === 'local' && store.get(LS_DRAFT));
+  const miss = geo.failed.length ? ` Couldn’t locate ${geo.failed.map((p) => `“${p}”`).join(', ')} — add coordinates by hand.` : '';
+  if (res.error) status(`${verb}, but not saved: ${res.error}${miss}`, true);
+  else status(`${verb}. ${res.persisted ? 'Saved ✓' : 'Saved in this browser (Local Data Mode).'}${miss}`, Boolean(miss));
+  loadAllWeather();
+}
+
+function bindEditor() {
+  $('#fStage').innerHTML = Object.entries(STAGES).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('');
+  $('#editBtn').addEventListener('click', () => (editor.classList.contains('open') ? closeEditor() : openEditor()));
+  $('#editorClose').addEventListener('click', closeEditor);
+  $('#fCancel').addEventListener('click', resetForm);
+  $('#fNow').addEventListener('change', (e) => { $('#fDate').disabled = e.target.checked; });
+  $('#edToken').addEventListener('change', (e) => sessionStorage.setItem('journey:token', e.target.value));
+  $('#edName').addEventListener('change', (e) => { const v = e.target.value.trim(); if (v && v !== journey.name) { journey.name = v; commitChange('Name updated'); } });
+  $('#edReset').addEventListener('click', () => { store.del(LS_DRAFT); location.reload(); });
+
+  $('#edList').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.edit !== undefined) return startEdit(+b.dataset.edit);
+    if (b.dataset.del !== undefined) {
+      if (b.dataset.armed) { journey.waypoints.splice(+b.dataset.del, 1); resetForm(); commitChange('Waypoint deleted'); }
+      else { b.dataset.armed = '1'; b.textContent = 'Sure?'; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = 'Delete'; } }, 3000); }
+    }
+  });
+
+  $('#edForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const place = $('#fPlace').value.trim(), country = $('#fCountry').value.trim(), now = $('#fNow').checked, date = $('#fDate').value;
+    if (!place) { status('Give the place a name.', true); $('#fPlace').focus(); return; }
+    if (!now && !/^\d{4}-\d{2}-\d{2}$/.test(date)) { status('Pick the arrival date (or tick “NOW”).', true); $('#fDate').focus(); return; }
+    if (now && journey.waypoints.some((w, i) => isNow(w) && i !== editing)) { status('There is already a “NOW” waypoint — edit that one instead.', true); return; }
+    let lat = $('#fLat').value === '' ? null : Number($('#fLat').value), lon = $('#fLon').value === '' ? null : Number($('#fLon').value);
+    if (lat !== null && lon !== null && (!(Math.abs(lat) <= 90) || !(Math.abs(lon) <= 180))) { status('Latitude must be −90…90 and longitude −180…180.', true); return; }
+    if (lat === null || lon === null) { lat = null; lon = null; }
+    const prev = editing !== null ? journey.waypoints[editing] : null;
+    if (prev && (prev.place !== place || prev.country !== country) && prev.lat === lat && prev.lon === lon) { lat = null; lon = null; }   // place changed → re-locate
+    const [y, m, d] = now ? [] : date.split('-').map(Number);
+    const w = { ...(now ? { year: 'NOW' } : { year: y, month: m, day: d }), place, country, lat, lon, stage: $('#fStage').value || 'adult', note: $('#fNote').value.trim(), ...($('#fKind').value ? { kind: $('#fKind').value } : {}) };
+    if (prev) journey.waypoints[editing] = w; else journey.waypoints.push(w);
+    resetForm();
+    commitChange(prev ? 'Waypoint updated' : 'Waypoint added');
+  });
+}
+
+/* ------------------------------------------------------------------ 10. input */
+const pointer = { down: false, x: 0, y: 0, t: 0, moved: false, count: 0 };
+
+function bindInput() {
+  $('#play').addEventListener('click', () => setPlaying(!playing));
+  document.querySelectorAll('[data-speed]').forEach((b) => b.addEventListener('click', () => {
+    speed = +b.dataset.speed;
+    document.querySelectorAll('[data-speed]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+  }));
+  $('#todayBtn').addEventListener('click', () => { tweenTo(1, 1500); });
+  $('#followBtn').addEventListener('click', () => setFollow(!follow));
+  document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
+  $('#chapBtn').addEventListener('click', (e) => { chapters = !chapters; e.currentTarget.setAttribute('aria-pressed', String(chapters)); colorArcs(); buildLegend(); });
+  $('#finishBtn').addEventListener('click', startFinish);
+  scrub.addEventListener('input', () => { tween = null; setFollow(true); setT(scrub.value / 100000); });   // scrubbing = instant state
+  $('#sheetClose').addEventListener('click', closeSheet);
+  $('#sheetJump').addEventListener('click', () => { const i = ui.sheet; if (i !== null && model.wps[i]) tweenTo(model.wps[i].t); closeSheet(); });
+
+  canvas.addEventListener('pointerdown', (e) => {
+    lastInteract = performance.now();
+    pointer.count++; pointer.down = true; pointer.x = e.clientX; pointer.y = e.clientY; pointer.t = performance.now(); pointer.moved = false;
+    if (pointer.count > 1) { pointer.moved = true; freeLook(); }       // pinch
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (pointer.down) {
+      if (!pointer.moved && Math.hypot(e.clientX - pointer.x, e.clientY - pointer.y) > 7) { pointer.moved = true; freeLook(); hideTooltip(); }
+      return;
+    }
+    if (e.pointerType !== 'mouse') return;
+    const i = pickWaypoint(e.clientX, e.clientY, 18);         // hover → floating tooltip
+    canvas.style.cursor = i !== null ? 'pointer' : 'grab';
+    if (i !== null) showTooltip(i, e.clientX, e.clientY);
+    else if (ui.hover !== null) hideTooltip();
+  });
+  const up = (e) => {
+    pointer.count = Math.max(0, pointer.count - 1); if (pointer.count === 0) pointer.down = false;
+    lastInteract = performance.now();
+    if (e.type !== 'pointerup' || pointer.moved || performance.now() - pointer.t > 600) return;
+    const touch = e.pointerType !== 'mouse', i = pickWaypoint(e.clientX, e.clientY, touch ? 30 : 18);
+    if (i === null) { closeSheet(); hideTooltip(); return; }
+    flyTo(i);                                                   // click / tap → smooth fly-to + detail card
+    if (cardAllowed(i)) { hideTooltip(); openSheet(i); }
+    else { closeSheet(); if (!touch) showTooltip(i, e.clientX, e.clientY); }
+  };
+  canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+  canvas.addEventListener('pointerleave', () => { if (ui.hover !== null) hideTooltip(); });
+  canvas.addEventListener('wheel', freeLook, { passive: true });
+
+  addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { if (ui.pinned !== null || ui.hover !== null) hideTooltip(); else if (ui.sheet !== null) closeSheet(); else if (editor.classList.contains('open')) closeEditor(); return; }
+    const tag = (e.target.tagName || '').toLowerCase();
+    if ((e.key === ' ' || e.key === 'k') && !['input', 'textarea', 'select', 'button'].includes(tag)) { e.preventDefault(); setPlaying(!playing); }
+  });
+  new ResizeObserver(() => { resize(); buildTimeline(); ui.dirty = true; }).observe($('#timeline'));
+}
+
+/* ------------------------------------------------------------------ 11. boot */
+async function boot() {
+  try { initScene(); }
+  catch (err) { console.error(err); $('#loaderText').textContent = 'This device could not start WebGL, which the globe needs.'; return; }
+  bindInput(); bindEditor(); setMode(mode);
+  await loadJourney();
+  rebuildAll();
+  requestAnimationFrame(frame);
+  $('#loader').classList.add('done');
+  loadAllWeather();
+
+  // First load: resolve any null lat/lon via Open-Meteo, then persist the result.
+  if (journey.waypoints.some((w) => !hasCoords(w))) {
+    const geo = await resolveCoords();
+    if (geo.resolved) { rebuildAll(); saveJourney(); loadAllWeather(); }
+  }
+  if (!model.wps.length) openEditor();
+}
+boot();
+</script>
+</body>
+</html>

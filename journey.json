@@ -1,0 +1,17 @@
+{
+  "userId": "default",
+  "name": "Alex Rivera",
+  "updatedAt": "2026-11-15T00:00:00Z",
+  "waypoints": [
+    { "year": 1990, "month": 6, "day": 15, "place": "New York", "country": "US", "lat": 40.7128, "lon": -74.006, "stage": "birth", "note": "Born on a summer morning" },
+    { "year": 1996, "month": 9, "day": 2, "place": "Toronto", "country": "CA", "lat": 43.6532, "lon": -79.3832, "stage": "childhood", "note": "New school, first snow day, first bike" },
+    { "year": 2008, "month": 8, "day": 20, "place": "Montreal", "country": "CA", "lat": null, "lon": null, "stage": "education", "note": "First time away from home" },
+    { "year": 2012, "month": 10, "day": 1, "place": "London", "country": "GB", "lat": 51.5072, "lon": -0.1276, "stage": "career", "note": "First real job, tiny flat, big city" },
+    { "year": 2015, "month": 3, "day": 28, "place": "Tokyo", "country": "JP", "lat": null, "lon": null, "stage": "adventure", "note": "Arrived just in time for cherry blossom" },
+    { "year": 2017, "month": 12, "day": 20, "place": "Denpasar", "country": "ID", "lat": -8.65, "lon": 115.2167, "stage": "adventure", "kind": "visit", "note": "Three weeks of surf on the way south" },
+    { "year": 2018, "month": 1, "day": 10, "place": "Sydney", "country": "AU", "lat": -33.8688, "lon": 151.2093, "stage": "career", "note": "Summer in January" },
+    { "year": 2021, "month": 6, "day": 14, "place": "Nadi", "country": "FJ", "lat": -17.8, "lon": 177.4167, "stage": "adventure", "kind": "visit", "note": "A stop in Fiji, right on the date line" },
+    { "year": 2021, "month": 7, "day": 5, "place": "Vancouver", "country": "CA", "lat": 49.2827, "lon": -123.1207, "stage": "family", "note": "Mountains, ocean and a place to put down roots" },
+    { "year": "NOW", "place": "Lisbon", "country": "PT", "lat": null, "lon": null, "stage": "adult", "note": "Where life happens today" }
+  ]
+}
