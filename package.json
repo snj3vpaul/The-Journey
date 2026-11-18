@@ -1,13 +1,20 @@
 {
   "name": "the-journey",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "description": "A life story on an interactive 3D globe. Static front end plus one Vercel serverless function.",
   "scripts": {
-    "dev": "vercel dev",
+    "dev": "node scripts/dev-server.mjs",
+    "dev:vercel": "vercel dev",
+    "test": "node --test tests/core.test.mjs tests/api.test.mjs",
+    "test:e2e": "node tests/e2e.mjs",
     "deploy": "vercel --prod"
   },
   "engines": {
     "node": "22.x"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^23.11.1",
+    "three": "0.160.0"
   }
 }

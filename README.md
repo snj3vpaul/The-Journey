@@ -1,75 +1,82 @@
 # The Journey
 
-A life story on an interactive 3D globe: glowing waypoints, great-circle flight arcs, seasons, real weather, and an avatar that grows up as you scrub through time.
+A life story on an interactive 3D globe. The world begins dark; the places you have lived and visited bring it to life as the timeline plays.
 
-Zero build step. Runs on Vercel's free Hobby plan with a free Upstash Redis database.
+No build step. A static front end (`index.html`, Three.js from jsDelivr) plus two Vercel Node functions, with one Upstash Redis database for storage. Runs on Vercel's Hobby plan and Upstash's free tier, within their published limits (which can change).
 
 ```
-.env.example      environment variables (copy to .env.local for local dev)
-api/journey.js    serverless function: load / save the journey, cached weather
-journey.json      seed data, used until Redis has a saved journey
-index.html        the whole front end (Three.js + Tailwind via CDN)
+index.html            the whole front end: globe, timeline, editor
+lib/core.mjs          shared, dependency-free logic used by browser AND server:
+                      data model, v1→v2 migration, validation, partial dates, timeline pacing,
+                      Discovery halo sizing, statistics, weather planning, geocoder normalisation
+api/journey.js        GET/PUT the journey · owner session (sign in/out) · cached weather
+api/geocode.js        place search proxy (Photon autocomplete), cached and rate-limited
+api/_shared.js        server-only helpers: Upstash REST, sessions, rate limiting, CSRF checks
+journey.json          the sample journey (v1 format; migrated on the fly)
+scripts/dev-server.mjs  zero-dependency local server that runs the real API code
+tests/                unit + API tests (node --test) and browser end-to-end tests (puppeteer-core)
 ```
 
-## 1. Create the free Upstash Redis database
+## Environment variables
 
-1. Sign in at <https://console.upstash.com> and choose **Create Database** (Redis).
-2. Give it a name, pick the region closest to you, and keep the **Free** plan.
-3. Open the database and find the **REST API** section. Copy:
-   - `UPSTASH_REDIS_REST_URL`
-   - `UPSTASH_REDIS_REST_TOKEN`
+Set these in Vercel → Project → Settings → Environment Variables (and in `.env.local` for local work). They are read only by the `/api` functions and never sent to the browser. See `.env.example`.
 
-## 2. Deploy to Vercel
+| Variable | Required | Purpose |
+|---|---|---|
+| `UPSTASH_REDIS_REST_URL` | for cloud saving | Upstash database → REST API URL |
+| `UPSTASH_REDIS_REST_TOKEN` | for cloud saving | Upstash REST token |
+| `JOURNEY_EDIT_TOKEN` | to edit | Owner passphrase. Empty = nobody can save to the cloud. Use a long random phrase. |
+| `JOURNEY_SESSION_SECRET` | optional | Extra key material for session signing. Rotate to sign every device out. |
+| `GEOCODER_URL` | optional | Any Photon-compatible endpoint. Default: public `https://photon.komoot.io/api` (fair use). |
+| `GEOCODER_USER_AGENT` | optional | User-Agent sent to the geocoder. |
+| `OPEN_METEO_URL`, `OPEN_METEO_ARCHIVE_URL` | optional | Weather endpoints (Open-Meteo by default). |
 
-1. Put these files in a Git repository (keep the `api/` folder as is) and push it to GitHub.
-2. At <https://vercel.com/new>, import the repository. Framework preset: **Other**. No build command, no output directory.
-3. Under **Settings → Environment Variables**, add:
-   - `UPSTASH_REDIS_REST_URL`
-   - `UPSTASH_REDIS_REST_TOKEN`
-   - `JOURNEY_EDIT_TOKEN` (optional, recommended): a passphrase that must be entered in the editor before edits are saved. Without it, anyone with the link can change the journey.
-4. Redeploy so the function picks up the variables.
+Without the two Upstash variables the app runs in **demo mode**: it is labelled as such, edits stay in that browser's local storage, and nothing is ever reported as saved to the cloud.
 
-Prefer the command line? `npm i -g vercel`, then `vercel` (preview) or `vercel --prod`. For local development, copy `.env.example` to `.env.local` and run `vercel dev`.
+## Deploy
 
-**No Redis yet?** The site still works. It serves `journey.json`, shows a small "Local Data Mode" badge, and keeps your edits in that browser only.
+1. Create a free Redis database at <https://console.upstash.com> and copy the REST URL and token.
+2. Import the repository at <https://vercel.com/new>. Framework preset **Other**, no build command, no output directory.
+3. Add the environment variables above, then redeploy.
+4. Open the site, choose **Edit Journey**, enter the passphrase. The session is an HttpOnly, signed cookie valid for 7 days.
 
-## 3. Editing the journey
+## Local development
 
-**In-app editor (once Redis is connected).** Click **Edit Journey**. Add, edit or delete waypoints in the slide-out panel. Leave latitude/longitude blank and the place is located automatically through Open-Meteo. Every change is saved straight away with `POST /api/journey` under the key `journey:<user-id>`. Tick "This is where I am today" for the one waypoint whose `year` is `"NOW"`.
+```
+npm install            # dev-only: three (served to the browser in tests) and puppeteer-core
+npm run dev            # http://localhost:3000 — static files + the real /api routes, reads .env.local
+npm test               # unit + API tests
+CHROME_PATH=/path/to/chrome npm run test:e2e     # browser tests; optional SHOTS=dir EARTH_TEXTURE=file.jpg
+```
 
-**Seed file.** Edit `journey.json` and redeploy. Use this for the starting state, or if you never connect Redis. Set `lat`/`lon` to `null` to have them resolved on first load. Note that once a journey has been saved to Redis, Redis wins and the seed file is ignored; delete the `journey:default` key in the Upstash console to return to the seed.
+The end-to-end tests replace Upstash, Photon and Open-Meteo with in-process fakes (`tests/fakes.mjs`). Their place-search results are fixtures, not live provider data.
 
-**More than one person.** Add `?user=some-name` to the URL. Each name gets its own Redis key and starts from the seed.
+## Data model (schema v2)
 
-Life chapters (`stage`) with built-in colours: `birth`, `childhood`, `education`, `career`, `adventure`, `family`, `adult`. Any other value works and gets a neutral colour.
+One JSON document per journey, stored as a Redis string under `journey:<id>` (plain `GET`/`SET`, no RedisJSON).
 
-Optional `kind` per waypoint: `"home"` or `"visit"`. If you leave it out, a stay under two months counts as a short visit. Homes are round markers, visits are diamonds.
+- **Journey:** `schemaVersion`, `journeyId`, `displayName`, `birthDate` (+ precision), `visibility` (`public` | `private`), `createdAt`, `updatedAt`, `revision`, `waypoints`.
+- **Waypoint:** `id`, `placeId`, `placeName`, `region`, `country`, `countryCode`, `latitude`, `longitude`, `geocodeSource` (`photon` | `manual` | `globe` | `legacy` | `unresolved`), `locationPrecision`, `startDate` / `endDate` as `YYYY`, `YYYY-MM` or `YYYY-MM-DD` with a matching `…Precision`, `isCurrent`, `stayType` (`birthplace` | `home` | `education` | `work` | `visit`), `chapter`, `note`, `sortIndex` (tie order for same-date entries), `createdAt`, `updatedAt`.
 
-## Two map modes
+Dates keep the precision you entered: a year-only arrival is stored as `"1996"`, never as 1 January. An ongoing stay is `isCurrent: true` with `endDate: null`. Overlapping stays are allowed and nothing ends another implicitly.
 
-- **Discovery** (default): the planet starts dark. Each place lights up when the timeline reaches it, with a halo sized by how long you stayed. Scrubbing backward darkens it again, down to the birthplace. The HUD shows "World discovered %" and milestone flashes, and at the end a **Finish orbit** button plays a slow lap around the lit journey.
-- **Full Map**: the sunlit globe with every waypoint visible from the start.
+**Migration.** Version-1 documents (`year: "NOW"`, `stage`, `kind`, `lat`/`lon`) are migrated on read by `migrateJourney()` and are not rewritten until the owner saves. Fields with no place in v2 are kept under `legacy`. On the first save after migration the original document is copied once to `journey:<id>:backup:v1`; every save also keeps the previous revision at `journey:<id>:prev`. Places that never had coordinates are flagged in the editor ("needs a location") instead of being guessed.
 
-Both modes share one timeline; switching keeps the scrubber position and playback. **Chapters** colours the arcs by life chapter and adds the chapter legend.
+**Saving** is a whole-document `PUT` with the `revision` it was based on. The server validates everything again, rejects stale revisions with `409` (the editor offers to reload), and only reports success after Upstash confirms the write. **Export backup / Import** in the editor round-trips the full JSON.
 
-## Why raw Three.js rather than Globe.gl
+## Security and privacy
 
-Discovery mode needs a custom globe shader (day texture × light mask, with a per-frame pulse), partial arc drawing tied to the scrubber, and a strict performance budget. Globe.gl hides the material and animates arcs on its own clock, which fights "everything is driven by the scrubber".
-
-## Swapping the weather provider
-
-Weather is fetched in two places, both returning `{ kind, code, temp, tmax, tmin, isDay }` where `code` is a WMO weather code:
-
-- `fetchWeather()` in `api/journey.js` (the cached server route).
-- `openMeteoDirect()` in `index.html` (browser fallback when the API route is unavailable).
-
-Replace those two functions and keep the return shape; the emoji mapping is the `WMO` table in `index.html`. Geocoding is `geocode()` in both files.
+- Writes need the owner session; the passphrase is sent once to open it, compared in constant time, and attempts are rate-limited (8 per 15 minutes per IP, shared through Redis).
+- State-changing requests must be same-origin JSON (`Origin` check + `SameSite=Strict` cookie).
+- Place search is available to the signed-in owner only once a passphrase is configured, and is rate-limited per IP.
+- **Visibility.** "Anyone with the link can view this journey" controls public reads. When it is off, signed-out visitors get a locked screen and the API returns `401` without the data. Migrated v1 journeys start as public because they were already public.
 
 ## How it behaves
 
-- **Clicking a place** flies the camera to it and opens its detail card (a bottom sheet on phones). In Discovery mode only visited places respond, and only the active one has a card and weather.
-- **Time.** The scrubber value (0 to 1) is the only clock. Arcs, comet, avatar, camera and seasons are computed from it, so scrubbing backward and forward always lands on the same picture. Space or K toggles play.
-- **Weather.** Historical dates use Open-Meteo's archive; the "NOW" waypoint uses the live forecast. Requests go through `/api/journey?resource=weather`, which caches in Redis (24 hours for historical days, 10 minutes for live weather so "now" stays current). If Open-Meteo can't be reached, the page estimates weather from latitude and season and shows a "Simulated Weather" badge. The archive starts in 1940; earlier dates are always simulated.
-- **Reduced motion.** With the system setting on, idle rotation, particles and confetti are off, and camera moves become instant cuts.
-- **Secrets.** The Upstash URL and token are read only inside `api/journey.js`.
-- **Globe texture.** Loaded from jsDelivr (`three-globe` example image). If that fails, a procedural globe is drawn instead.
+- **Adding a place:** type at least 3 letters (2 for CJK and other dense scripts). Results come from Photon through `/api/geocode` — debounced, stale replies discarded, settlements ranked before administrative areas, streets and shops filtered out. Choosing a result shows a confirmation card (name, region, country, coordinates, type, "Verified by place search") and previews the spot on the globe. Editing the text afterwards invalidates the choice. If search has no answer: **Enter coordinates** (range-checked, labelled manual) or **Choose on globe**. Saving waits for the server, then the place joins the timeline, the camera turns to it and its light blooms in.
+- **Timeline:** one clock (`journeyTime`, the scrubber) drives visible places, arcs, lighting, age, chapter, season and weather. Pacing is event-based: long gaps are compressed logarithmically so empty decades don't drag. Play/pause, 1×/2×/4×, Today, and Follow (dragging the globe turns Follow off until you turn it back on).
+- **Discovery:** only places the timeline has reached are lit, each with a soft local halo (visits small, long-term homes wider and warmer; duration counts only when both dates are known). Scrubbing back darkens them again. The light mask is an equirectangular canvas redrawn only while a halo is fading, with copies across the ±180° seam. Statistics are counts of places, countries and chapters, plus a straight-line distance labelled as an estimate. There is no "% of the world discovered" figure, because no defined area metric backs it.
+- **Routes:** great-circle arcs between consecutive located events. They are narrative connections: no transport mode or real flight path is implied, and two records in the same place get no arc.
+- **Weather:** depends on date precision. An exact day from 1940 on gets an Open-Meteo reanalysis value labelled *historical estimate*. A month gets the season only. A year gets nothing. A current stay viewed at "Today" gets live conditions. Weather is cached server-side (30 days historical, 10 minutes live) and never blocks the globe or saving.
+- **Figure:** a small original figure grows from infant to adult with the computed age, and is hidden when age is unknown. Toggle with **Figure**. Ages derived from a year-only or month-only birth date are shown as "≈".
+- **Accessibility:** keyboard-operable editor, ARIA combobox for place search, focus restored when panels close, reduced-motion support (cuts instead of fly-throughs), and a text-only fallback when WebGL is unavailable.

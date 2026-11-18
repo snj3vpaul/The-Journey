@@ -2,13 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-visual">
 <title>The Journey</title>
-<meta name="description" content="A life story mapped on an interactive globe — places, flights, seasons and weather through time.">
+<meta name="description" content="A life story told on a globe: the world begins dark, and the places you have lived bring it to life.">
 <meta name="theme-color" content="#04060c">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='11' fill='%230b1730' stroke='%23f6c453' stroke-width='2'/%3E%3Cpath d='M7 19c5-9 12-9 18-5' fill='none' stroke='%23f6c453' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
 
-<script src="https://cdn.tailwindcss.com"></script>
 <script type="importmap">
 {
   "imports": {
@@ -21,12 +20,14 @@
 <style>
   :root {
     --bg: #04060c;
-    --ink: #e9edf6;
-    --muted: #93a0b8;
-    --gold: #f6c453;
-    --glass: rgba(11, 15, 27, 0.58);
-    --line: rgba(255, 255, 255, 0.10);
-    --tl-h: 170px;
+    --ink: #ece7da;                    /* muted ivory */
+    --muted: #98a2b6;
+    --gold: #f6c453;                   /* warm amber: discovered places, primary actions */
+    --steel: #7f9cc0;                  /* restrained geographic accent */
+    --danger: #ffa3a3;
+    --glass: rgba(9, 13, 24, 0.70);
+    --line: rgba(236, 231, 218, 0.11);
+    --tl-h: 170px; --pl: 0px; --pr: 0px; --kb: 0px; --vvh: 100dvh;
     --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
     --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
@@ -41,57 +42,66 @@
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
   button, input, select, textarea { font: inherit; color: inherit; }
   button { cursor: pointer; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
   :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 8px; }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .wrap { flex-wrap: wrap; }
+  .grow { flex: 1; min-width: 0; }
 
   #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 
   .glass {
     background: var(--glass); border: 1px solid var(--line); border-radius: 18px;
-    -webkit-backdrop-filter: blur(18px) saturate(150%); backdrop-filter: blur(18px) saturate(150%);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
   .chip {
     display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px;
-    font-size: 12px; line-height: 1.2; background: rgba(255,255,255,0.07); border: 1px solid var(--line); white-space: nowrap;
+    font-size: 12px; line-height: 1.2; background: rgba(255,255,255,0.06); border: 1px solid var(--line); white-space: nowrap;
   }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--gold)); box-shadow: 0 0 10px var(--c, var(--gold)); flex: none; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--gold)); box-shadow: 0 0 8px var(--c, var(--gold)); flex: none; }
   .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 12px;
-    border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,0.06); font-size: 13px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 13px;
+    border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,0.05); font-size: 13px; white-space: nowrap;
     transition: background .15s, border-color .15s, color .15s;
   }
-  .btn:hover { background: rgba(255,255,255,0.13); }
-  .btn[aria-pressed="true"] { background: var(--gold); color: #1b1404; border-color: transparent; font-weight: 600; }
+  .btn:hover:not(:disabled) { background: rgba(255,255,255,0.12); }
+  .btn[aria-pressed="true"], .btn[aria-pressed="true"]:hover:not(:disabled) { background: var(--gold); color: #1b1404; border-color: transparent; font-weight: 600; }
   .btn-gold { background: var(--gold); color: #1b1404; border-color: transparent; font-weight: 600; }
-  .btn-gold:hover { background: #ffd874; }
-  .btn-danger:hover { background: rgba(255, 99, 99, 0.25); border-color: rgba(255, 120, 120, 0.5); }
+  .btn-gold:hover:not(:disabled) { background: #ffd874; }
+  .btn-danger:hover:not(:disabled) { background: rgba(255, 99, 99, 0.22); border-color: rgba(255, 120, 120, 0.5); }
+  .btn-quiet { border-color: transparent; background: transparent; color: var(--muted); }
+  .btn-sm { min-height: 30px; padding: 0 10px; font-size: 12px; }
+  .icon-btn { width: 36px; padding: 0; }
 
-  /* ---------- HUD (top-left) + actions (top-right) */
-  #hud { position: fixed; z-index: 20; top: calc(14px + env(safe-area-inset-top)); left: calc(14px + env(safe-area-inset-left)); max-width: min(72vw, 420px); pointer-events: none; }
-  #hud h1 { font-family: var(--serif); font-size: clamp(26px, 5vw, 40px); line-height: 1; margin: 0; letter-spacing: -0.01em; text-shadow: 0 2px 24px rgba(0,0,0,.6); }
-  #hud .name { margin: 6px 0 10px; color: var(--muted); font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; }
+  /* ---------- HUD (top-left) + controls (top-right) */
+  #hud { position: fixed; z-index: 20; top: calc(14px + env(safe-area-inset-top)); left: calc(16px + env(safe-area-inset-left)); max-width: min(60vw, 420px); pointer-events: none; }
+  #hud h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(26px, 5vw, 38px); line-height: 1; margin: 0; letter-spacing: -0.01em; text-shadow: 0 2px 24px rgba(0,0,0,.6); }
+  #hud .name { margin: 7px 0 2px; color: var(--muted); font-size: 12.5px; letter-spacing: 0.16em; text-transform: uppercase; }
+  #hudWhen { margin: 0 0 10px; font-family: var(--serif); font-size: 17px; color: var(--ink); min-height: 22px; font-variant-numeric: tabular-nums; }
   #hud .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   #chapter { font-size: 13px; padding: 6px 12px; }
-  #actions { position: fixed; z-index: 20; top: calc(14px + env(safe-area-inset-top)); right: calc(14px + env(safe-area-inset-right)); }
+  #actions { position: fixed; z-index: 20; top: calc(14px + env(safe-area-inset-top)); right: calc(14px + env(safe-area-inset-right)); display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; max-width: min(46vw, 520px); }
+  .seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid var(--line); }
+  .seg .btn { min-height: 30px; padding: 0 11px; border: 0; background: transparent; font-variant-numeric: tabular-nums; }
+  .seg .btn:hover:not(:disabled) { background: rgba(255,255,255,0.12); }
+  .seg .btn[aria-pressed="true"], .seg .btn[aria-pressed="true"]:hover:not(:disabled) { background: var(--gold); }
 
   /* ---------- Timeline (bottom) */
   #timeline {
-    position: fixed; z-index: 30; left: 50%; transform: translateX(-50%);
-    bottom: calc(10px + env(safe-area-inset-bottom)); width: min(980px, calc(100vw - 20px)); padding: 12px 14px 10px;
+    position: fixed; z-index: 30; left: calc(50% + (var(--pl) - var(--pr)) / 2); transform: translateX(-50%);
+    bottom: calc(10px + env(safe-area-inset-bottom)); width: min(980px, calc(100vw - 20px - var(--pl) - var(--pr))); padding: 12px 14px 10px;
+    transition: opacity .2s;
   }
   #play {
     width: 52px; height: 52px; flex: none; border-radius: 50%; border: 0; background: var(--gold); color: #1b1404;
-    display: grid; place-items: center; box-shadow: 0 0 0 6px rgba(246,196,83,0.14), 0 6px 22px rgba(246,196,83,0.35);
+    display: grid; place-items: center; box-shadow: 0 0 0 6px rgba(246,196,83,0.12), 0 6px 22px rgba(246,196,83,0.28);
     transition: transform .12s;
   }
   #play:hover { transform: scale(1.05); }
   #play:active { transform: scale(0.96); }
   #dateOut { font-family: var(--serif); font-size: clamp(24px, 3.4vw, 36px); line-height: 1.1; font-variant-numeric: tabular-nums; }
   #ageOut { font-size: 13px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .speed { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid var(--line); }
-  .speed .btn { min-height: 30px; padding: 0 10px; border: 0; background: transparent; font-variant-numeric: tabular-nums; }
-  .speed .btn:hover { background: rgba(255,255,255,0.12); }
-  .speed .btn[aria-pressed="true"] { background: var(--gold); }
 
   .track-wrap { margin: 10px 9px 0; }
   #pins { position: relative; height: 18px; }
@@ -103,10 +113,14 @@
   .pin.reached::after { opacity: 1; }
   .pin.active::after { transform: scale(1.55); }
   .pin:hover::after { transform: scale(1.7); opacity: 1; }
+  .pin.visit::after { border-radius: 1px; transform: rotate(45deg) scale(.8); }
+  .pin.visit.active::after, .pin.visit:hover::after { transform: rotate(45deg) scale(1.35); }
+  body.dark .pin:not(.reached) { visibility: hidden; }      /* Discovery: the future is not on the timeline either */
   .track { position: relative; height: 12px; border-radius: 999px; background: rgba(255,255,255,0.07); }
   #bands, #fill { position: absolute; inset: 0; border-radius: 999px; overflow: hidden; pointer-events: none; }
-  #bands span { position: absolute; top: 0; bottom: 0; background: var(--c); opacity: .28; border-right: 1px solid rgba(4,6,12,.8); }
-  #fill { right: auto; width: 0; background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.38)); mix-blend-mode: screen; }
+  #bands span { position: absolute; top: 0; bottom: 0; background: var(--c); opacity: .26; border-right: 1px solid rgba(4,6,12,.8); }
+  body.dark #bands { -webkit-mask-image: linear-gradient(90deg, #000 var(--tp, 0%), transparent var(--tp, 0%)); mask-image: linear-gradient(90deg, #000 var(--tp, 0%), transparent var(--tp, 0%)); }
+  #fill { right: auto; width: 0; background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.36)); mix-blend-mode: screen; }
   #scrub {
     position: absolute; left: -11px; width: calc(100% + 22px); top: -10px; height: 32px; margin: 0;
     -webkit-appearance: none; appearance: none; background: transparent; cursor: grab; touch-action: none;
@@ -116,9 +130,9 @@
   #scrub::-moz-range-track { height: 32px; background: transparent; }
   #scrub::-webkit-slider-thumb {
     -webkit-appearance: none; width: 22px; height: 22px; margin-top: 5px; border-radius: 50%;
-    background: #fff; border: 4px solid var(--gold); box-shadow: 0 0 16px rgba(246,196,83,0.85);
+    background: #fff; border: 4px solid var(--gold); box-shadow: 0 0 14px rgba(246,196,83,0.75);
   }
-  #scrub::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 4px solid var(--gold); box-shadow: 0 0 16px rgba(246,196,83,0.85); }
+  #scrub::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 4px solid var(--gold); box-shadow: 0 0 14px rgba(246,196,83,0.75); }
   #scrub:focus-visible { outline: none; }
   #scrub:focus-visible::-webkit-slider-thumb { outline: 2px solid #fff; outline-offset: 3px; }
   #scrub:focus-visible::-moz-range-thumb { outline: 2px solid #fff; outline-offset: 3px; }
@@ -130,18 +144,22 @@
 
   /* ---------- Badges (bottom-right, above the timeline) */
   #badges { position: fixed; z-index: 25; right: calc(12px + env(safe-area-inset-right)); bottom: calc(var(--tl-h) + 20px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none; }
-  .badge { font-size: 11px; padding: 4px 9px; border-radius: 999px; color: var(--muted); background: rgba(11,15,27,0.6); border: 1px solid var(--line); letter-spacing: .02em; }
+  .badge { font-size: 11px; padding: 4px 9px; border-radius: 999px; color: var(--muted); background: rgba(9,13,24,0.7); border: 1px solid var(--line); letter-spacing: .02em; }
+  #legend { position: fixed; z-index: 25; left: calc(14px + env(safe-area-inset-left)); bottom: calc(var(--tl-h) + 20px + env(safe-area-inset-bottom)); display: flex; flex-wrap: wrap; gap: 4px 12px; max-width: min(60vw, 420px); font-size: 11.5px; color: var(--muted); text-shadow: 0 1px 6px #000; pointer-events: none; }
+  #legend i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 50%; background: var(--c, #fff); }
+  #legend i.dia { border-radius: 1px; transform: rotate(45deg); }
 
-  /* ---------- Tooltip (desktop hover) */
+  /* ---------- Tooltip (desktop hover) and the waypoint card */
   #tooltip { position: fixed; z-index: 40; left: 0; top: 0; width: max-content; max-width: 290px; padding: 12px 14px; pointer-events: none; opacity: 0; transform: translate3d(-999px,-999px,0); transition: opacity .12s; }
   #tooltip.show { opacity: 1; }
-  .wp-title { font-family: var(--serif); font-size: 19px; line-height: 1.15; margin: 0; }
+  .wp-title { font-family: var(--serif); font-weight: 500; font-size: 20px; line-height: 1.15; margin: 6px 0 0; }
+  .wp-sub { color: var(--muted); font-size: 12.5px; margin: 2px 0 0; }
   .wp-meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 9px 0 0; font-size: 12.5px; }
   .wp-meta dt { color: var(--muted); }
   .wp-meta dd { margin: 0; }
-  .wp-note { margin: 9px 0 0; font-size: 13px; font-style: italic; color: #cfd6e6; }
-
-  /* ---------- Bottom sheet (touch) */
+  .wp-note { margin: 9px 0 0; font-size: 13px; font-style: italic; color: #d5d0c2; }
+  .wp-wx { margin: 9px 0 0; font-size: 12.5px; }
+  .wp-wx small { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
   #sheet {
     position: fixed; z-index: 50; left: 0; right: 0; bottom: 0; padding: 10px 18px calc(18px + env(safe-area-inset-bottom));
     border-radius: 22px 22px 0 0; border-bottom: 0; transform: translateY(105%); transition: transform .28s cubic-bezier(.2,.8,.2,1);
@@ -149,208 +167,323 @@
   }
   #sheet.open { transform: none; }
   #sheet .grab { width: 40px; height: 4px; border-radius: 4px; background: rgba(255,255,255,.25); margin: 0 auto 12px; }
+  #sheet .foot { display: flex; gap: 8px; margin-top: 14px; }
 
-  /* ---------- Editor drawer (slide-out, non-modal) */
-  #editor {
-    position: fixed; z-index: 60; top: 0; right: 0; bottom: 0; width: min(410px, 100vw); padding: calc(16px + env(safe-area-inset-top)) 18px 18px;
-    border-radius: 22px 0 0 22px; border-right: 0; overflow-y: auto; transform: translateX(105%);
-    transition: transform .3s cubic-bezier(.2,.8,.2,1); overscroll-behavior: contain;
+  /* ---------- Journey editor: "Your Journey" (left) + "Place details" (right); the globe stays visible between them */
+  .panel {
+    position: fixed; z-index: 60; top: calc(12px + env(safe-area-inset-top)); bottom: 12px; display: flex; flex-direction: column;
+    border-radius: 20px; overflow: hidden; transition: transform .3s cubic-bezier(.2,.8,.2,1); background: rgba(8, 12, 22, 0.86);
   }
-  #editor.open { transform: none; }
-  #editor h2 { font-family: var(--serif); font-size: 24px; margin: 0; }
-  #editor h3 { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 18px 0 8px; }
+  #journeyPanel { left: 12px; width: min(360px, calc(100vw - 24px)); transform: translateX(-112%); }
+  #detailPanel { right: 12px; width: min(400px, calc(100vw - 24px)); transform: translateX(112%); z-index: 61; }
+  #journeyPanel.open, #detailPanel.open { transform: none; }
+  .panel-head { display: flex; align-items: center; gap: 10px; padding: 16px 18px 8px; }
+  .panel-head h2 { font-family: var(--serif); font-weight: 500; font-size: 23px; margin: 0; flex: 1; min-width: 0; }
+  .panel-body { flex: 1; overflow-y: auto; padding: 4px 18px 16px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  .panel-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 18px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: rgba(8, 12, 22, 0.6); }
+  .panel h3, .lbl { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 18px 0 7px; }
   .field { display: block; font-size: 12px; color: var(--muted); }
-  .field > input, .field > select, .field > textarea {
-    display: block; width: 100%; margin-top: 4px; padding: 9px 11px; border-radius: 10px; font-size: 14px; color: var(--ink);
-    background: rgba(255,255,255,0.06); border: 1px solid var(--line);
+  .field > input, .field > select, .field > textarea, .inp {
+    display: block; width: 100%; margin-top: 4px; padding: 10px 11px; min-height: 42px; border-radius: 10px; font-size: 16px; color: var(--ink);
+    background: rgba(255,255,255,0.055); border: 1px solid var(--line);
   }
-  .field > select option { color: #111; }
-  .field > textarea { resize: vertical; min-height: 60px; }
-  .field > input:disabled { opacity: .4; }
-  #edList { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-  #edList li { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--line); font-size: 13px; }
-  #edList .what { flex: 1; min-width: 0; }
+  @media (min-width: 761px) { .field > input, .field > select, .field > textarea, .inp { font-size: 14px; min-height: 38px; padding: 8px 11px; } }
+  .field > select option, select.inp option { color: #111; }
+  .field > textarea { resize: vertical; min-height: 64px; }
+  .field > input:disabled, .field > select:disabled, .inp:disabled { opacity: .4; }
+  .field.bad > input, .inp.bad { border-color: var(--danger); }
+  .dates { display: grid; grid-template-columns: 1.1fr 1.3fr 1fr; gap: 6px; }
+  .hint { font-size: 11.5px; color: var(--muted); margin: 5px 0 0; line-height: 1.4; }
+  .check { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; min-height: 30px; }
+  .check input { width: 18px; height: 18px; accent-color: var(--gold); }
+  .notice { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; font-size: 12.5px; line-height: 1.45; background: rgba(127,156,192,0.10); border: 1px solid rgba(127,156,192,0.25); }
+  .notice.warn { background: rgba(246,196,83,0.08); border-color: rgba(246,196,83,0.3); }
+  .notice .row { margin-top: 8px; }
+  .status { min-height: 18px; font-size: 12.5px; color: var(--muted); margin: 10px 0 0; }
+  .status.err { color: var(--danger); }
+  .pill { font-size: 11px; padding: 3px 9px; border-radius: 999px; color: var(--muted); border: 1px solid var(--line); white-space: nowrap; }
+  .pill.ok { color: #9fdcb6; border-color: rgba(159,220,182,.35); }
+  .pill.local { color: var(--gold); border-color: rgba(246,196,83,.4); }
+  .pill.err { color: var(--danger); border-color: rgba(255,163,163,.45); }
+
+  #edList { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  #edList .grp { margin: 14px 0 2px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 7px; }
+  #edList .item { display: flex; align-items: center; gap: 4px; padding: 6px 6px 6px 4px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--line); font-size: 13.5px; }
+  #edList .item.active { border-color: rgba(246,196,83,.55); background: rgba(246,196,83,.07); }
+  #edList .item .btn-sm { padding: 0 9px; flex: none; }
+  #edList .go { flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px; padding: 4px 6px; min-height: 44px; text-align: left; background: transparent; border: 0; border-radius: 9px; }
+  #edList .go:hover { background: rgba(255,255,255,.06); }
+  #edList .ico { flex: none; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; color: var(--c, var(--gold)); background: rgba(255,255,255,.05); }
+  #edList .what { min-width: 0; }
+  #edList .what b { display: block; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #edList .what small { display: block; color: var(--muted); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #edList .btn { min-height: 30px; padding: 0 10px; font-size: 12px; }
-  #edStatus { min-height: 18px; font-size: 12.5px; color: var(--muted); margin: 12px 0 0; }
-  #edStatus.err { color: #ff9c9c; }
+  #edList .what small.warn { color: var(--gold); }
+  #edList .empty { padding: 14px 4px; color: var(--muted); font-size: 13px; }
+
+  /* place search (combobox) */
+  #locList { list-style: none; margin: 6px 0 0; padding: 4px; border-radius: 12px; border: 1px solid var(--line); background: rgba(4, 7, 14, 0.9); }
+  #locList li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; min-height: 48px; border-radius: 9px; cursor: pointer; }
+  #locList li[aria-selected="true"], #locList li:hover { background: rgba(246,196,83,.13); }
+  #locList .nm { flex: 1; min-width: 0; }
+  #locList .nm b { display: block; font-weight: 500; font-size: 14px; }
+  #locList .nm small { display: block; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kind { flex: none; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--steel); border: 1px solid rgba(127,156,192,.35); padding: 2px 7px; border-radius: 999px; }
+  #locState { min-height: 18px; font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+  #locState.err { color: var(--danger); }
+  .spin { display: inline-block; width: 11px; height: 11px; margin-right: 6px; border-radius: 50%; border: 2px solid rgba(255,255,255,.2); border-top-color: var(--gold); animation: spin .8s linear infinite; vertical-align: -1px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #locCard { margin-top: 4px; padding: 12px; border-radius: 14px; border: 1px solid rgba(246,196,83,.4); background: rgba(246,196,83,.06); }
+  #locCard .t { font-family: var(--serif); font-size: 19px; line-height: 1.2; }
+  #locCard .s { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  #locCard .c { font-size: 12px; margin-top: 8px; font-variant-numeric: tabular-nums; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  #locManual { margin-top: 8px; padding: 12px; border-radius: 14px; border: 1px dashed var(--line); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  /* ---------- Gate (empty state / private / load error), toast, globe-pick bar */
+  #gate { position: fixed; z-index: 35; left: 50%; top: 46%; transform: translate(-50%, -50%); width: min(430px, calc(100vw - 32px)); padding: 26px 26px 22px; text-align: center; }
+  #gate h2 { font-family: var(--serif); font-weight: 500; font-size: clamp(24px, 4.4vw, 30px); margin: 0; line-height: 1.15; }
+  #gate p { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 10px 0 16px; }
+  #gate form { display: flex; gap: 8px; margin-bottom: 10px; }
+  #toast { position: fixed; z-index: 90; left: 50%; top: calc(18px + env(safe-area-inset-top)); transform: translate(-50%, -12px); max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: 999px; font-size: 13.5px; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; border-color: rgba(246,196,83,.45); text-align: center; }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+  #toast.err { border-color: rgba(255,163,163,.5); }
+  #pickBar { position: fixed; z-index: 80; left: 50%; top: calc(16px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 8px 8px 8px 16px; border-radius: 999px; display: flex; align-items: center; gap: 12px; font-size: 13.5px; max-width: calc(100vw - 24px); border-color: rgba(246,196,83,.5); }
+  body.picking #scene { cursor: crosshair !important; }
 
   /* ---------- Loader / fallback message */
   #loader { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: var(--bg); transition: opacity .6s; }
   #loader.done { opacity: 0; pointer-events: none; }
   #loader p { font-family: var(--serif); font-size: 20px; color: var(--muted); letter-spacing: .02em; text-align: center; padding: 0 24px; }
 
-  /* ---------- View bar (bottom-left), legend, milestone flash */
-  #viewbar { position: fixed; z-index: 25; left: calc(12px + env(safe-area-inset-left)); bottom: calc(var(--tl-h) + 20px + env(safe-area-inset-bottom)); display: flex; flex-wrap: wrap-reverse; align-items: center; gap: 6px; max-width: calc(100vw - 172px); }
-  #viewbar .btn { min-height: 32px; }
-  #legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 9px; font-size: 11.5px; color: var(--muted); text-shadow: 0 1px 6px #000; }
-  #legend i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 50%; background: var(--c, #fff); box-shadow: 0 0 6px var(--c, #fff); }
-  #legend i.dia { border-radius: 1px; transform: rotate(45deg); }
-  .pin.visit::after { border-radius: 1px; transform: rotate(45deg) scale(.8); }
-  .pin.visit.active::after, .pin.visit:hover::after { transform: rotate(45deg) scale(1.35); }
-  body.dark .pin:not(.reached) { visibility: hidden; }
-  #flash { position: fixed; z-index: 45; left: 50%; top: 24%; transform: translateX(-50%); font-family: var(--serif); font-size: clamp(19px, 3.6vw, 30px); color: #ffe9b8; text-shadow: 0 0 26px rgba(246,196,83,.85), 0 2px 10px #000; white-space: nowrap; pointer-events: none; opacity: 0; }
-  #flash.show { animation: flash 2.8s ease both; }
-  @keyframes flash { 0% { opacity: 0; letter-spacing: .32em; } 16% { opacity: 1; letter-spacing: .05em; } 74% { opacity: 1; } 100% { opacity: 0; } }
-  @keyframes flashStill { 0%, 90% { opacity: 1; } 100% { opacity: 0; } }
-  @media (min-width: 641px) {      /* detail card on larger screens; bottom sheet on phones */
-    #sheet { left: auto; right: 14px; bottom: auto; top: 66px; width: 330px; margin: 0; padding: 14px 16px 16px; border-radius: 18px; border: 1px solid var(--line); transform: translateX(120%); }
+  @media (min-width: 761px) {      /* waypoint card on larger screens; bottom sheet on phones */
+    #sheet { left: auto; right: 14px; bottom: auto; top: 64px; width: 330px; margin: 0; padding: 14px 16px 16px; border-radius: 18px; border: 1px solid var(--line); transform: translateX(120%); }
     #sheet .grab { display: none; }
+    body.editing #hud, body.editing #legend { opacity: 0; }
+    body.detailing #actions, body.detailing #sheet, body.detailing #badges { display: none; }
   }
-
-  @media (max-width: 640px) {
+  @media (min-width: 761px) and (max-width: 1180px) { body.detailing #timeline { opacity: 0; pointer-events: none; } }
+  @media (max-width: 760px) {
+    #hud { max-width: 56vw; }
+    #actions { max-width: 42vw; }
     #timeline { padding: 10px 10px 8px; border-radius: 16px; }
     #play { width: 46px; height: 46px; }
     #dateOut { font-size: 24px; }
     .hide-sm { display: none; }
-    #editor { top: auto; left: 0; width: 100vw; height: 74dvh; border-radius: 22px 22px 0 0; border: 1px solid var(--line); border-bottom: 0; transform: translateY(105%); padding-top: 16px; }
     #ticks span { font-size: 10px; }
+    #legend { display: none; }
+    /* editor = bottom sheets sized to the *visual* viewport, so the on-screen keyboard never hides the results or Save */
+    .panel { left: 0 !important; right: 0 !important; top: auto; bottom: var(--kb); width: 100vw !important; height: calc(var(--vvh) * 0.78); border-radius: 22px 22px 0 0; border-bottom: 0; transform: translateY(112%) !important; }
+    #detailPanel { height: calc(var(--vvh) * 0.74); }
+    .panel.open { transform: none !important; }
+    body.picking .panel.open { transform: translateY(112%) !important; }
+    body.editing #timeline, body.editing #badges, body.editing #sheet { opacity: 0; pointer-events: none; }
+    #locList li { min-height: 52px; }
+    .btn { min-height: 40px; }
+    .btn-sm { min-height: 36px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    #sheet, #editor, #tooltip, #loader, .btn, #play, .pin::after { transition: none !important; }
-    #flash.show { animation: flashStill 2.8s linear both; }
+    #sheet, .panel, #tooltip, #loader, .btn, #play, .pin::after, #toast, #timeline { transition: none !important; }
+    .spin { animation-duration: 2.4s; }
   }
 </style>
 </head>
 
 <body>
-<canvas id="scene" role="img" aria-label="Interactive 3D globe showing the places of this life story, connected by flight arcs. Use the timeline controls below to move through time."></canvas>
+<canvas id="scene" role="img" aria-label="Interactive globe. The world starts dark; each place in this life story lights up when the timeline reaches it. Use the timeline controls to move through time."></canvas>
 
 <header id="hud">
   <h1>The Journey</h1>
   <p class="name" id="personName">&nbsp;</p>
+  <p id="hudWhen">&nbsp;</p>
   <div class="chips">
     <span class="chip glass" id="chapter"><span class="dot" id="chapterDot"></span><span id="chapterText">Loading…</span></span>
-    <span class="chip glass" id="seasonChip" title="Season at the active place">—</span>
-    <span class="chip glass" id="weatherChip" title="Weather at the active place">—</span>
-    <span class="chip glass" id="discChip" hidden>World discovered: 0%</span>
+    <span class="chip glass" id="seasonChip" hidden></span>
+    <span class="chip glass" id="weatherChip" hidden></span>
+    <span class="chip glass" id="discChip" hidden></span>
   </div>
-  <div id="legend" aria-label="Legend"></div>
 </header>
 
 <div id="actions">
-  <button class="btn glass" id="editBtn" aria-label="Edit Journey" aria-expanded="false" aria-controls="editor">
+  <button class="btn btn-gold" id="finishBtn" hidden aria-label="Play the closing orbit around the lit journey">Closing orbit</button>
+  <div class="seg glass" role="group" aria-label="Map mode">
+    <button class="btn" data-mode="dark" aria-pressed="true" aria-label="Discovery: the world starts dark and lights up as life happens">Discovery</button>
+    <button class="btn" data-mode="full" aria-pressed="false" aria-label="Full Map: every place visible">Full Map</button>
+  </div>
+  <button class="btn glass hide-sm" id="chapBtn" aria-pressed="false" aria-label="Colour routes by life chapter">Chapters</button>
+  <button class="btn glass hide-sm" id="figureBtn" aria-pressed="true" aria-label="Show the growing figure">Figure</button>
+  <button class="btn glass" id="editBtn" aria-label="Edit journey" aria-expanded="false" aria-controls="journeyPanel">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-    <span>Edit Journey</span>
+    <span class="hide-sm">Edit Journey</span>
   </button>
 </div>
 
+<div id="legend" aria-label="Legend"></div>
 <div id="badges" aria-live="polite">
-  <span class="badge" id="badgeLocal" hidden>● Local Data Mode</span>
-  <span class="badge" id="badgeSim" hidden>≈ Simulated Weather</span>
+  <span class="badge" id="badgeLocal" hidden>Demo mode · changes stay on this device</span>
 </div>
-
-<div id="viewbar">
-  <div class="speed glass" role="group" aria-label="Map mode">
-    <button class="btn" data-mode="full" aria-pressed="false" aria-label="Full Map mode: every place visible">Full Map</button>
-    <button class="btn" data-mode="dark" aria-pressed="true" aria-label="Discovery mode: the world starts dark and lights up as life happens">Discovery</button>
-  </div>
-  <button class="btn glass" id="chapBtn" aria-pressed="false" aria-label="Colour arcs by life chapter">Chapters</button>
-  <button class="btn btn-gold" id="finishBtn" hidden aria-label="Play the finishing camera orbit around the lit journey">✦ Finish orbit</button>
-</div>
-<div id="flash" aria-hidden="true"></div>
 
 <div id="tooltip" class="glass" role="tooltip"></div>
 
-<section id="sheet" class="glass" role="dialog" aria-label="Waypoint details" aria-hidden="true" inert>
+<section id="sheet" class="glass" role="dialog" aria-label="Place details" aria-hidden="true" inert>
   <div class="grab" aria-hidden="true"></div>
   <div id="sheetBody"></div>
-  <div class="flex gap-2 mt-4">
-    <button class="btn btn-gold flex-1" id="sheetJump" aria-label="Jump the timeline to this moment">Jump to this moment</button>
-    <button class="btn" id="sheetClose" aria-label="Close waypoint details">Close</button>
+  <div class="foot">
+    <button class="btn btn-gold grow" id="sheetJump">Jump to this moment</button>
+    <button class="btn" id="sheetClose" aria-label="Close place details">Close</button>
   </div>
 </section>
 
-<aside id="editor" class="glass" aria-label="Edit journey" aria-hidden="true" inert>
-  <div class="flex items-center justify-between gap-3">
-    <h2>Edit Journey</h2>
-    <button class="btn" id="editorClose" aria-label="Close editor">Close</button>
-  </div>
-
-  <label class="field mt-4">Whose journey is this?
-    <input id="edName" type="text" maxlength="80" autocomplete="off" aria-label="Person's name">
-  </label>
-  <label class="field mt-3" id="edTokenRow" hidden>Edit passphrase
-    <input id="edToken" type="password" autocomplete="off" aria-label="Edit passphrase">
-  </label>
-
-  <h3>Waypoints</h3>
-  <ul id="edList" aria-label="Waypoints in chronological order"></ul>
-
-  <form id="edForm" novalidate>
-    <h3 id="edFormTitle">Add a waypoint</h3>
-    <div class="grid grid-cols-3 gap-2">
-      <label class="field col-span-2">Place
-        <input id="fPlace" type="text" maxlength="120" required placeholder="City or town" autocomplete="off">
-      </label>
-      <label class="field">Country
-        <input id="fCountry" type="text" maxlength="56" placeholder="e.g. CA" autocomplete="off">
-      </label>
-    </div>
-    <div class="grid grid-cols-2 gap-2 mt-2">
-      <label class="field">Arrived on
-        <input id="fDate" type="date" min="0001-01-01">
-      </label>
-      <label class="field">Life chapter
-        <select id="fStage"></select>
-      </label>
-    </div>
-    <label class="flex items-center gap-2 mt-2 text-[13px]" for="fNow">
-      <input id="fNow" type="checkbox" class="w-4 h-4"> This is where I am today (“NOW”)
-    </label>
-    <label class="field mt-2">Kind of stay
-      <select id="fKind">
-        <option value="">Auto (under two months counts as a visit)</option>
-        <option value="home">Home — lived here</option>
-        <option value="visit">Short visit</option>
-      </select>
-    </label>
-    <label class="field mt-2">Note
-      <textarea id="fNote" maxlength="400" placeholder="What happened here?"></textarea>
-    </label>
-    <div class="grid grid-cols-2 gap-2 mt-2">
-      <label class="field">Latitude (optional)
-        <input id="fLat" type="number" step="any" min="-90" max="90" placeholder="auto">
-      </label>
-      <label class="field">Longitude (optional)
-        <input id="fLon" type="number" step="any" min="-180" max="180" placeholder="auto">
-      </label>
-    </div>
-    <p class="text-[11.5px] mt-1" style="color:var(--muted)">Leave coordinates blank and the place is located automatically.</p>
-    <div class="flex gap-2 mt-3">
-      <button class="btn btn-gold flex-1" type="submit" id="fSubmit">Add waypoint</button>
-      <button class="btn" type="button" id="fCancel" hidden>Cancel</button>
-    </div>
+<section id="gate" class="glass" hidden aria-live="polite">
+  <h2 id="gateTitle"></h2>
+  <p id="gateText"></p>
+  <form id="gateForm" hidden>
+    <input class="inp" id="gatePass" type="password" autocomplete="current-password" aria-label="Passphrase" placeholder="Passphrase" style="margin:0">
+    <button class="btn btn-gold" type="submit">Unlock</button>
   </form>
+  <p class="status err" id="gateStatus" role="alert" style="margin:0 0 10px" hidden></p>
+  <button class="btn btn-gold" id="gateAction" hidden></button>
+</section>
 
-  <p id="edStatus" role="status" aria-live="polite"></p>
-  <button class="btn btn-danger mt-2" id="edReset" hidden aria-label="Discard local changes and reload the seed journey">Discard local changes</button>
+<!-- Your Journey -->
+<aside id="journeyPanel" class="panel glass" aria-label="Your journey" aria-hidden="true" inert>
+  <div class="panel-head">
+    <h2>Your Journey</h2>
+    <span class="pill" id="saveState" role="status" aria-live="polite"></span>
+    <button class="btn btn-sm" id="editorClose" aria-label="Close editor">Close</button>
+  </div>
+  <div class="panel-body">
+    <label class="field">Whose journey is this?
+      <input id="edName" type="text" maxlength="80" autocomplete="off">
+    </label>
+    <div id="edNotice"></div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn btn-gold grow" id="addPlace" type="button">+ Add a place</button>
+    </div>
+    <ol id="edList" aria-label="Places in chronological order, grouped by life chapter"></ol>
+    <p class="status" id="listStatus" role="status" aria-live="polite"></p>
+  </div>
+  <div class="panel-foot">
+    <button class="btn btn-sm" id="exportBtn" type="button">Export backup</button>
+    <button class="btn btn-sm" id="importBtn" type="button">Import…</button>
+    <input id="importFile" type="file" accept="application/json,.json" hidden>
+    <span class="grow"></span>
+    <button class="btn btn-sm btn-quiet" id="signOut" type="button" hidden>Sign out</button>
+    <label class="check" id="shareRow" hidden style="margin:0;font-size:12.5px;flex-basis:100%"><input type="checkbox" id="shareToggle"> Anyone with the link can view this journey</label>
+  </div>
 </aside>
 
-<footer id="timeline" class="glass" aria-label="Time machine">
-  <div class="flex items-center gap-3 flex-wrap">
+<!-- Place details -->
+<aside id="detailPanel" class="panel glass" aria-label="Place details" aria-hidden="true" inert>
+  <form id="edForm" novalidate style="display:contents">
+    <div class="panel-head">
+      <h2 id="edFormTitle">Add a place</h2>
+    </div>
+    <div class="panel-body" id="detailBody">
+      <p class="lbl" id="locLbl" style="margin-top:6px">Location</p>
+      <div id="locSearch">
+        <input class="inp" id="fPlace" type="text" maxlength="80" placeholder="Search a city, town or village" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="search"
+               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="locList" aria-labelledby="locLbl" style="margin:0">
+        <ul id="locList" role="listbox" aria-label="Matching places" hidden></ul>
+        <div id="locState" role="status" aria-live="polite"></div>
+        <div class="row wrap" style="margin-top:4px">
+          <span class="hint" style="margin:0">Can’t find it?</span>
+          <button class="btn btn-sm" type="button" id="locGlobe">Choose on globe</button>
+          <button class="btn btn-sm" type="button" id="locCoords">Enter coordinates</button>
+        </div>
+      </div>
+      <div id="locManual" hidden>
+        <label class="field">Place name <input id="mName" type="text" maxlength="120" autocomplete="off"></label>
+        <label class="field" style="margin-top:8px">Country (optional) <input id="mCountry" type="text" maxlength="80" autocomplete="off"></label>
+        <div class="two" style="margin-top:8px">
+          <label class="field">Latitude <input id="mLat" type="text" inputmode="decimal" placeholder="−90 … 90" autocomplete="off"></label>
+          <label class="field">Longitude <input id="mLon" type="text" inputmode="decimal" placeholder="−180 … 180" autocomplete="off"></label>
+        </div>
+        <p class="hint">Entered by hand — this place will be marked “set manually”, not verified by search.</p>
+        <div class="row" style="margin-top:10px">
+          <button class="btn btn-gold btn-sm" type="button" id="mUse">Use this location</button>
+          <button class="btn btn-sm" type="button" id="mPick">Pick on globe</button>
+          <button class="btn btn-sm btn-quiet" type="button" id="mBack">Back to search</button>
+        </div>
+      </div>
+      <div id="locCard" hidden>
+        <div class="t" id="lcName"></div>
+        <div class="s" id="lcRegion"></div>
+        <div class="c"><span id="lcCoords"></span><span class="kind" id="lcKind"></span><span class="pill" id="lcSource"></span></div>
+        <div class="row" style="margin-top:10px"><button class="btn btn-sm" type="button" id="locChange">Change location</button></div>
+      </div>
+
+      <p class="lbl" id="arrLbl">Arrived</p>
+      <div class="dates" role="group" aria-labelledby="arrLbl">
+        <input class="inp" id="fY" type="text" inputmode="numeric" maxlength="4" placeholder="Year" aria-label="Arrival year (required)" autocomplete="off" style="margin:0">
+        <select class="inp" id="fM" aria-label="Arrival month (optional)" style="margin:0"></select>
+        <select class="inp" id="fD" aria-label="Arrival day (optional)" style="margin:0" disabled></select>
+      </div>
+      <p class="hint">Only the year is required. Leave month or day blank if you don’t remember — nothing is guessed.</p>
+
+      <p class="lbl" id="depLbl">Left</p>
+      <div class="dates" role="group" aria-labelledby="depLbl">
+        <input class="inp" id="fEY" type="text" inputmode="numeric" maxlength="4" placeholder="Year" aria-label="Departure year (optional)" autocomplete="off" style="margin:0">
+        <select class="inp" id="fEM" aria-label="Departure month (optional)" style="margin:0" disabled></select>
+        <select class="inp" id="fED" aria-label="Departure day (optional)" style="margin:0" disabled></select>
+      </div>
+      <label class="check" for="fCurrent"><input id="fCurrent" type="checkbox"> Currently here</label>
+
+      <div class="two" style="margin-top:14px">
+        <label class="field">Type
+          <select id="fType">
+            <option value="birthplace">Birthplace</option>
+            <option value="home">Home</option>
+            <option value="education">Education</option>
+            <option value="work">Work</option>
+            <option value="visit">Visit</option>
+          </select>
+        </label>
+        <label class="field">Life chapter
+          <select id="fChapter"></select>
+        </label>
+      </div>
+      <label class="field" id="fChapterCustomRow" style="margin-top:8px" hidden>Name this chapter
+        <input id="fChapterCustom" type="text" maxlength="40" autocomplete="off" placeholder="e.g. Gap year">
+      </label>
+      <label class="field" style="margin-top:12px">Note <span style="opacity:.7">(optional)</span>
+        <textarea id="fNote" maxlength="600" placeholder="A memory from this place"></textarea>
+      </label>
+      <p class="status" id="edStatus" role="alert"></p>
+    </div>
+    <div class="panel-foot">
+      <button class="btn btn-gold grow" type="submit" id="fSubmit">Save place</button>
+      <button class="btn" type="button" id="fCancel">Cancel</button>
+    </div>
+  </form>
+</aside>
+
+<div id="pickBar" class="glass" hidden role="status"><span>Click the globe where this place is</span><button class="btn btn-sm" type="button" id="pickCancel">Cancel</button></div>
+<div id="toast" class="glass" role="status" aria-live="polite"></div>
+
+<footer id="timeline" class="glass" aria-label="Timeline">
+  <div class="row wrap" style="gap:12px">
     <button id="play" aria-label="Play">
       <svg id="icoPlay" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z"/></svg>
       <svg id="icoPause" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" hidden><rect x="5" y="4" width="5" height="16" rx="1.2"/><rect x="14" y="4" width="5" height="16" rx="1.2"/></svg>
     </button>
-    <div class="flex-1 min-w-[110px]">
+    <div class="grow" style="min-width:110px">
       <div id="dateOut">—</div>
       <div id="ageOut">&nbsp;</div>
     </div>
-    <div class="speed" role="group" aria-label="Playback speed">
+    <div class="seg" role="group" aria-label="Playback speed">
       <button class="btn" data-speed="1" aria-pressed="true" aria-label="Speed 1 times">1×</button>
       <button class="btn" data-speed="2" aria-pressed="false" aria-label="Speed 2 times">2×</button>
       <button class="btn" data-speed="4" aria-pressed="false" aria-label="Speed 4 times">4×</button>
     </div>
-    <button class="btn" id="todayBtn" aria-label="Jump to Today">Today <span aria-hidden="true">⇥</span></button>
-    <button class="btn" id="followBtn" aria-pressed="true" aria-label="Camera follows the journey" title="Camera follows the journey">
+    <button class="btn" id="todayBtn" aria-label="Jump to today">Today <span aria-hidden="true">⇥</span></button>
+    <button class="btn" id="followBtn" aria-pressed="true" aria-label="Camera follows the journey" title="Camera follows the journey. Rotating the globe yourself pauses this.">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
       <span class="hide-sm">Follow</span>
     </button>
   </div>
 
   <div class="track-wrap">
-    <div id="pins" role="group" aria-label="Waypoints"></div>
+    <div id="pins" role="group" aria-label="Places on the timeline"></div>
     <div class="track">
       <div id="bands"></div>
       <div id="fill"></div>
@@ -363,52 +496,58 @@
 
 <div class="sr-only" id="live" aria-live="polite"></div>
 <div id="loader"><p id="loaderText">Charting the journey…</p></div>
-<noscript><p style="position:fixed;inset:0;display:grid;place-items:center;color:#e9edf6">The Journey needs JavaScript and WebGL to draw the globe.</p></noscript>
+<noscript><p style="position:fixed;inset:0;display:grid;place-items:center;color:#ece7da">The Journey needs JavaScript and WebGL to draw the globe.</p></noscript>
 
 <script type="module">
 /* =====================================================================================
    THE JOURNEY
-   One number drives the story: T, the scrubber's normalized time (0 → first waypoint,
-   1 → today). Arcs, comet, avatar, camera, seasons and HUD are all pure functions of T,
-   so scrubbing backward or forward can never desync. Wall-clock time is only used to
-   advance T during playback and for stateless ambient loops (marker pulse, rain, confetti).
-   Two render modes (Full Map / Discovery) share this one state machine.
+   One number drives the story: T — "journeyTime" — the scrubber position (0 → the first
+   place, 1 → today). The timeline is event-paced (lib/core.mjs), so T maps to a calendar
+   instant through model.tl.timeOfT(T). Visible places, the active place, routes, Discovery
+   lighting, age, chapter, season and weather are all pure functions of T, so scrubbing
+   backward or forward always lands on the same picture. Wall-clock time only advances T
+   during playback and eases short visual transitions (a halo fading in, the camera).
    Sections: 1 config · 2 utils · 3 data/API · 4 weather · 5 time model · 6 scene ·
              7 per-frame state · 8 UI · 9 editor · 10 input · 11 boot
    ===================================================================================== */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import * as core from './lib/core.mjs';
 
 /* ------------------------------------------------------------------ 1. config */
 const CONFIG = {
-  playSeconds: 60,          // a whole life at 1× speed
-  travelShare: 0.25,        // a flight's screen time is proportional to the real gap before the move…
+  travelShare: 0.25,        // a route's screen time is a share of the (event-paced) gap before the move…
   travelFloor: 0.006,       // …with a small floor so short hops are still visible
-  bloomWindow: 0.025,       // Discovery: timeline share a halo takes to bloom (≈1.5 s at 1×)
-  avatarHeight: 0.21,       // adult height in globe radii
-  arcFade: 0.02,            // timeline share over which a finished arc dims to 0.3
-  orbitTurns: 12,           // laps the avatar walks around a waypoint over the whole timeline
+  bloomIn: 0.9,             // seconds a place takes to light up once the timeline reaches it
+  bloomOut: 0.45,           // seconds to fall dark again when the timeline rewinds past it
+  avatarHeight: 0.13,       // adult height in globe radii — small enough to stay subordinate to the map
+  arcFade: 0.02,            // timeline share over which a finished route settles to its quiet state
+  orbitTurns: 12,           // laps the figure walks around a place over the whole timeline
   weatherParticles: 50,     // hard cap, single THREE.Points
-  confettiParticles: 48,
+  searchDebounce: 350,      // ms between the last keystroke and a place search
   earthTexture: 'https://cdn.jsdelivr.net/npm/three-globe@2.45.6/example/img/earth-day.jpg',
 };
-const STAGES = {
-  birth:     { label: 'Birth',      color: '#f6c453' },
-  childhood: { label: 'Childhood',  color: '#ff9e6b' },
-  education: { label: 'Education',  color: '#5aa9ff' },
-  career:    { label: 'Career',     color: '#b28cff' },
-  adventure: { label: 'Adventure',  color: '#ff6fae' },
-  family:    { label: 'Family',     color: '#ff8f8f' },
-  adult:     { label: 'Adult life', color: '#4ade9b' },
+const STAGES = {            // life chapters with a built-in colour; any other chapter name works and gets a neutral one
+  birth:     { label: 'Birth',      color: '#f2c15a' },
+  childhood: { label: 'Childhood',  color: '#e9a274' },
+  education: { label: 'Education',  color: '#7fa9dc' },
+  career:    { label: 'Career',     color: '#a99bd8' },
+  personal:  { label: 'Personal',   color: '#8fc9ad' },
+  adventure: { label: 'Adventure',  color: '#d98cab' },
+  family:    { label: 'Family',     color: '#dca193' },
+  adult:     { label: 'Adult life', color: '#8fc9ad' },
 };
-const FALLBACK_JOURNEY = {
-  userId: 'default', name: 'A traveller', updatedAt: '2026-01-01T00:00:00Z',
-  waypoints: [
-    { year: 1990, month: 6, day: 15, place: 'New York', country: 'US', lat: 40.7128, lon: -74.006, stage: 'birth', note: 'Born on a summer morning' },
-    { year: 2010, month: 8, day: 20, place: 'Toronto', country: 'CA', lat: 43.6532, lon: -79.3832, stage: 'education', note: 'First time away from home' },
-    { year: 'NOW', place: 'London', country: 'GB', lat: 51.5072, lon: -0.1276, stage: 'adult', note: 'Where life happens today' },
-  ],
+const TYPE_LABEL = { birthplace: 'Birthplace', home: 'Home', education: 'Education', work: 'Work', visit: 'Visit' };
+const TYPE_CHAPTER = { birthplace: 'childhood', home: 'personal', education: 'education', work: 'career', visit: 'personal' };
+const svg = (d) => `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const TYPE_ICON = {
+  birthplace: svg('<path d="M12 3l2.2 5.6L20 9.3l-4.4 3.9 1.3 5.8L12 16l-4.9 3 1.3-5.8L4 9.3l5.8-.7z"/>'),
+  home: svg('<path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/>'),
+  education: svg('<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11.5V16c2 2 10 2 12 0v-4.5"/>'),
+  work: svg('<rect x="3" y="8" width="18" height="11" rx="2"/><path d="M9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>'),
+  visit: svg('<path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2"/>'),
 };
+const SOURCE_LABEL = { photon: 'Verified by place search', manual: 'Set manually', globe: 'Placed on the globe', legacy: 'Saved earlier', unresolved: 'Not located' };
 
 /* ------------------------------------------------------------------ 2. utils */
 const $ = (s, r = document) => r.querySelector(s);
@@ -426,12 +565,13 @@ const stageInfo = (s) => STAGES[s] || { label: titleCase(s || 'Chapter'), color:
 const flag = (cc) => /^[A-Za-z]{2}$/.test(cc || '') ? String.fromCodePoint(...[...cc.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65)) : '';
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },     // false = private mode / quota: the caller must not claim it saved
   del(k) { try { localStorage.removeItem(k); } catch { /* ignore */ } },
 };
 function fetchT(url, init = {}, ms = 9000) {
   const ctl = new AbortController();
   const id = setTimeout(() => ctl.abort(), ms);
+  if (init.signal) { if (init.signal.aborted) ctl.abort(); else init.signal.addEventListener('abort', () => ctl.abort(), { once: true }); }
   return fetch(url, { ...init, signal: ctl.signal }).finally(() => clearTimeout(id));
 }
 function humanDuration(ms) {
@@ -449,96 +589,114 @@ function hash01(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) 
 const motionQuery = matchMedia('(prefers-reduced-motion: reduce)');
 let reduced = motionQuery.matches;
 motionQuery.addEventListener?.('change', (e) => { reduced = e.matches; });
-const touchUI = () => matchMedia('(hover: none), (max-width: 640px)').matches;
+const isPhone = () => matchMedia('(max-width: 760px)').matches;
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+const fmtCoords = (lat, lon) => `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lon).toFixed(4)}° ${lon >= 0 ? 'E' : 'W'}`;
+function vec3ToLatLon(v) {            // inverse of latLonToVec3
+  const n = v.clone().normalize();
+  return { lat: 90 - Math.acos(clamp(n.y, -1, 1)) * 180 / Math.PI, lon: core.wrapLon(Math.atan2(n.z, -n.x) * 180 / Math.PI - 180) };
+}
 
 /* ------------------------------------------------------------------ 3. data / API */
 const USER = (new URLSearchParams(location.search).get('user') || 'default').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40) || 'default';
-const LS_DRAFT = `journey:draft:${USER}`;
-const api = { available: false, mode: 'local', editProtected: false };
+const LS_DRAFT = `journey:v2:draft:${USER}`, LS_DRAFT_V1 = `journey:draft:${USER}`;
+/* mode 'cloud' = Upstash behind /api/journey · mode 'demo' = nothing server-side, this browser's storage only (always labelled as such) */
+const api = { server: false, mode: 'demo', canEdit: false, authConfigured: false, sample: false, locked: false, loadError: '', skipped: 0, conflict: null };
 const nowMs = Date.now();
-let journey = null;
+let journey = core.emptyJourney(USER);
+const canEditNow = () => !api.loadError && !api.locked && !api.skipped && (api.mode === 'demo' || api.canEdit);
 
-const hasCoords = (w) => typeof w.lat === 'number' && typeof w.lon === 'number' && Number.isFinite(w.lat) && Number.isFinite(w.lon);
-const isNow = (w) => String(w.year).toUpperCase() === 'NOW';
-const wpTime = (w) => isNow(w) ? nowMs : Date.UTC(+w.year, (+w.month || 1) - 1, +w.day || 1);
+async function apiCall(path, init = {}, ms = 12000) {
+  try {
+    const r = await fetchT(path, { credentials: 'same-origin', ...init, headers: { Accept: 'application/json', ...(init.body ? { 'Content-Type': 'application/json' } : {}) } }, ms);
+    const data = (r.headers.get('content-type') || '').includes('json') ? await r.json().catch(() => null) : null;
+    return { ok: r.ok && data !== null, status: r.status, data: data || {}, json: data !== null, retryAfter: Number(r.headers.get('retry-after')) || 0 };
+  } catch { return { ok: false, status: 0, data: {}, json: false, retryAfter: 0 }; }
+}
 
-function normalizeJourney(j) {
-  const src = j && Array.isArray(j.waypoints) ? j : FALLBACK_JOURNEY;
-  return {
-    userId: USER, name: String(src.name || 'A traveller'), updatedAt: src.updatedAt || new Date().toISOString(),
-    waypoints: src.waypoints.filter((w) => w && w.place).map((w) => ({
-      ...(isNow(w) ? { year: 'NOW' } : { year: +w.year, month: +w.month || 1, day: +w.day || 1 }),
-      place: String(w.place), country: String(w.country || ''),
-      lat: hasCoords(w) ? w.lat : null, lon: hasCoords(w) ? w.lon : null,
-      stage: String(w.stage || 'adult').toLowerCase(), note: String(w.note || ''),
-      ...(w.kind === 'home' || w.kind === 'visit' ? { kind: w.kind } : {}),
-    })),
-  };
+/** Bring any stored shape (v1 or v2) into the current model. Unreadable places are never silently dropped: editing is locked instead. */
+function adopt(raw) {
+  api.skipped = 0;
+  if (!raw) return core.emptyJourney(USER);
+  try {
+    const { journey: j } = core.migrateJourney(raw, { journeyId: USER });
+    try { return core.validateJourney(j, { journeyId: USER, nowMs: Date.now() }); }
+    catch {
+      const good = j.waypoints.filter((w) => { try { core.validateWaypoint(w); return true; } catch { return false; } });
+      api.skipped = j.waypoints.length - good.length;
+      return core.validateJourney({ ...j, waypoints: good }, { journeyId: USER });
+    }
+  } catch (err) {
+    console.error(err);
+    api.loadError = api.loadError || `This journey could not be read (${err.message}). Nothing has been changed.`;
+    return core.emptyJourney(USER);
+  }
 }
 
 async function loadJourney() {
+  api.locked = false; api.loadError = ''; api.sample = false; api.conflict = null;
+  const r = await apiCall(`/api/journey?user=${USER}`);
   let raw = null;
-  try {
-    const r = await fetchT(`/api/journey?user=${USER}`, { headers: { Accept: 'application/json' } });
-    const d = r.ok ? await r.json() : null;
-    if (!d || !d.journey) throw new Error('no api');
-    api.available = true; api.mode = d.mode === 'redis' ? 'redis' : 'local'; api.editProtected = Boolean(d.editProtected);
-    raw = d.journey;
-  } catch {
-    try { raw = await (await fetchT('./journey.json')).json(); } catch { raw = FALLBACK_JOURNEY; }
+  if (r.ok && r.data.journey) {
+    api.server = true; api.mode = r.data.mode === 'cloud' ? 'cloud' : 'demo';
+    api.canEdit = Boolean(r.data.canEdit); api.authConfigured = Boolean(r.data.authConfigured); api.sample = Boolean(r.data.sample);
+    raw = r.data.journey;
+  } else if (r.status === 401 && r.data.code === 'private') {
+    api.server = true; api.mode = 'cloud'; api.locked = true; api.canEdit = false; api.authConfigured = Boolean(r.data.authConfigured);
+  } else if (r.json || r.status === 0 || r.status >= 500) {
+    // The API exists but could not answer. Do NOT fall back to sample data: it could be mistaken for (and saved over) the real journey.
+    api.server = r.json; api.mode = 'cloud';
+    api.loadError = r.data.error || (r.status === 0 ? 'The journey could not be loaded — check your connection.' : `The journey could not be loaded (${r.status}).`);
+  } else {
+    api.server = false; api.mode = 'demo'; api.sample = true;       // no API route at all (plain static hosting)
+    try { raw = await (await fetchT('./journey.json')).json(); } catch { raw = null; api.sample = false; }
   }
-  if (api.mode === 'local') { const draft = store.get(LS_DRAFT); if (draft && Array.isArray(draft.waypoints)) raw = draft; }
-  journey = normalizeJourney(raw);
-  $('#badgeLocal').hidden = api.mode !== 'local';
-}
-
-/** Persist: POST /api/journey when the API exists; browser storage when running in Local Data Mode. */
-async function saveJourney() {
-  journey.updatedAt = new Date().toISOString();
-  let persisted = false, error = '';
-  if (api.available) {
-    try {
-      const token = sessionStorage.getItem('journey:token') || '';
-      const r = await fetchT(`/api/journey?user=${USER}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { 'x-edit-token': token } : {}) },
-        body: JSON.stringify({ journey }),
-      }, 15000);
-      const d = await r.json().catch(() => ({}));
-      if (r.ok) persisted = Boolean(d.persisted);
-      else error = r.status === 401 ? 'Enter the edit passphrase to save.' : (d.error || `Save failed (${r.status})`);
-    } catch { error = 'Could not reach the server.'; }
+  if (api.mode === 'demo' && !api.loadError) {
+    const draft = store.get(LS_DRAFT) || store.get(LS_DRAFT_V1);
+    if (draft && Array.isArray(draft.waypoints)) { raw = draft; api.sample = false; }
   }
-  if (!persisted) store.set(LS_DRAFT, journey);
-  return { persisted, error };
+  journey = adopt(raw);
+  $('#badgeLocal').hidden = api.mode !== 'demo';
 }
 
-async function geocode(place, country) {
-  const u = new URL('https://geocoding-api.open-meteo.com/v1/search');
-  u.searchParams.set('name', place.split(',')[0].trim());
-  u.searchParams.set('count', '10'); u.searchParams.set('language', 'en'); u.searchParams.set('format', 'json');
-  const d = await (await fetchT(u)).json();
-  const results = Array.isArray(d.results) ? d.results : [];
-  if (!results.length) return null;
-  const c = (country || '').trim().toLowerCase();
-  const hit = (c && results.find((r) => String(r.country_code || '').toLowerCase() === c || String(r.country || '').toLowerCase() === c)) || results[0];
-  return { lat: +hit.latitude.toFixed(5), lon: +hit.longitude.toFixed(5) };
-}
-
-/** Rule: null lat/lon → geocode via Open-Meteo, update local state; the caller then POSTs to persist. */
-async function resolveCoords() {
-  const out = { resolved: 0, failed: [] };
-  for (const w of journey.waypoints) {
-    if (hasCoords(w)) continue;
-    try {
-      const hit = await geocode(w.place, w.country);
-      if (hit) { w.lat = hit.lat; w.lon = hit.lon; out.resolved++; } else out.failed.push(w.place);
-    } catch { out.failed.push(w.place); }
+/**
+ * Persist a candidate journey. Resolves { ok: true, where: 'cloud' | 'device', journey } ONLY after the store confirmed the write;
+ * otherwise { ok: false, error, code }. The in-memory journey is never touched here, so a failed save loses nothing.
+ */
+async function saveJourney(next) {
+  let candidate;
+  try { candidate = core.validateJourney({ ...next, updatedAt: new Date().toISOString() }, { journeyId: USER, nowMs: Date.now() }); }
+  catch (err) { return { ok: false, error: err.message, path: err.path }; }
+  if (api.mode === 'demo') {
+    candidate.revision = (journey.revision || 0) + 1;
+    const ok = store.set(LS_DRAFT, candidate) && JSON.stringify(store.get(LS_DRAFT)) === JSON.stringify(candidate);
+    return ok ? { ok: true, where: 'device', journey: candidate }
+      : { ok: false, error: 'This browser would not store the journey (storage is full or disabled). Use “Export backup” to keep your changes.' };
   }
-  return out;
+  const r = await apiCall(`/api/journey?user=${USER}`, { method: 'PUT', body: JSON.stringify({ journey: candidate, baseRevision: journey.revision || 0 }) }, 15000);
+  if (r.ok && r.data.persisted === true && r.data.journey) {
+    try { return { ok: true, where: 'cloud', journey: core.validateJourney(r.data.journey, { journeyId: USER, nowMs: Date.now() }) }; }
+    catch { return { ok: false, error: 'The server answered, but not with a readable journey. Please retry.' }; }
+  }
+  if (r.status === 401) { api.canEdit = false; return { ok: false, code: 'signed_out', error: 'Your editing session has ended. Enter the passphrase in “Your Journey”, then retry — nothing you typed is lost.' }; }
+  if (r.status === 409) { api.conflict = r.data.current || null; return { ok: false, code: 'conflict', error: 'This journey was changed in another tab or device, so this save was not applied. Load the latest version from “Your Journey”, then retry.' }; }
+  if (r.status === 0) return { ok: false, error: 'Could not reach the server, so nothing was saved. Check your connection and retry.' };
+  return { ok: false, error: `Not saved: ${r.data.error || `the server answered ${r.status}`}` };
 }
 
-/* ------------------------------------------------------------------ 4. weather */
+/** The one path every change takes: save first, and only then let the globe, timeline and lists show it. */
+async function commit(next, { toastMsg = '' } = {}) {
+  setSaveState('saving');
+  const res = await saveJourney(next);
+  if (!res.ok) { setSaveState('error'); renderNotice(); return res; }
+  journey = res.journey; api.sample = false; api.conflict = null;
+  rebuildAll(); renderEditorList(); renderNotice(); setSaveState(res.where);
+  if (toastMsg) toast(res.where === 'cloud' ? toastMsg : `${toastMsg} Kept on this device only (demo mode).`);
+  loadAllWeather();
+  return res;
+}
+
+/* ------------------------------------------------------------------ 4. weather (shown only as precisely as the date allows) */
 const WMO = [
   [[0], '☀️', 'Clear'], [[1], '🌤️', 'Mostly clear'], [[2], '⛅', 'Partly cloudy'], [[3], '☁️', 'Overcast'],
   [[45, 48], '🌫️', 'Fog'], [[51, 53, 55], '🌦️', 'Drizzle'], [[56, 57], '🌧️', 'Freezing drizzle'],
@@ -563,21 +721,12 @@ function seasonAt(ms, lat) {
   return { s, warmth, phase: 2 * Math.PI * (doy - 200) / 365.25 + (north ? 0 : Math.PI), name, emoji: { Spring: '🌸', Summer: '☀️', Autumn: '🍂', Winter: '❄️' }[name], hemi: north ? 'Northern' : 'Southern' };
 }
 
-/** Procedural estimate from latitude + season — used only when Open-Meteo is unreachable. */
-function simulateWeather(lat, lon, ms, live) {
-  const { warmth } = seasonAt(ms, lat);
-  const r = hash01(`${lat.toFixed(1)},${lon.toFixed(1)},${isoDate(ms)}`);
-  const temp = 28 - 0.42 * Math.abs(lat) + 0.28 * Math.abs(lat) * warmth + (r - 0.5) * 6;
-  const code = r < 0.42 ? (r < 0.2 ? 0 : 1) : r < 0.7 ? (r < 0.56 ? 2 : 3) : temp <= 0.5 ? 73 : r < 0.9 ? 61 : 80;
-  return { kind: live ? 'live' : 'archive', code, temp, isDay: true, simulated: true };
-}
-
-async function openMeteoDirect(lat, lon, date) {
+async function openMeteoDirect(lat, lon, date) {       // used only when the page runs without its API route
   const base = `latitude=${lat}&longitude=${lon}&timezone=auto`;
   if (date === 'now') {
     const d = await (await fetchT(`https://api.open-meteo.com/v1/forecast?${base}&current=temperature_2m,weather_code,is_day`)).json();
     if (typeof d?.current?.temperature_2m !== 'number') throw new Error('no data');
-    return { kind: 'live', code: d.current.weather_code ?? null, temp: d.current.temperature_2m, isDay: d.current.is_day !== 0 };
+    return { kind: 'live', provenance: 'Current conditions · Open-Meteo', code: d.current.weather_code ?? null, temp: d.current.temperature_2m, isDay: d.current.is_day !== 0 };
   }
   const recent = Date.now() - Date.parse(`${date}T00:00:00Z`) < 7 * DAY;
   const url = recent
@@ -589,117 +738,78 @@ async function openMeteoDirect(lat, lon, date) {
   let temp = pick('temperature_2m_mean');
   if (temp === null && tmax !== null && tmin !== null) temp = (tmax + tmin) / 2;
   if (temp === null) throw new Error('no data');
-  return { kind: 'archive', code: pick('weather_code') ?? pick('weathercode'), temp, tmax, tmin, isDay: true };
+  return { kind: 'historical', date, provenance: recent ? 'Recent model data · Open-Meteo' : 'Historical estimate · Open-Meteo reanalysis (modelled for the area, not a station reading)', code: pick('weather_code') ?? pick('weathercode'), temp, tmax, tmin, isDay: true };
 }
 
-const weather = new Map();                       // key → weather record
-const weatherKey = (w) => `${w.lat.toFixed(2)},${w.lon.toFixed(2)},${w.isNow ? 'now' : isoDate(w.time)}`;
-const weatherOf = (w) => weather.get(weatherKey(w)) || null;
-
-async function loadWeather(w) {
-  const key = weatherKey(w);
+const weather = new Map();                       // key → 'pending' | record | null (null: asked, nothing trustworthy to show)
+const wxKey = (lat, lon, date) => `${lat.toFixed(2)},${lon.toFixed(2)},${date}`;
+async function loadWeather(lat, lon, date) {
+  const key = wxKey(lat, lon, date), live = date === 'now';
   if (weather.has(key)) return;
-  const date = w.isNow ? 'now' : isoDate(w.time);
-  const ttl = w.isNow ? 36e5 : DAY;
-  const cached = store.get(`journey:wx:${key}`);
-  if (!w.isNow && cached && Date.now() - cached.at < ttl) { weather.set(key, cached.w); return; }   // live weather is refetched on every page load
+  const cached = live ? null : store.get(`journey:wx2:${key}`);
+  if (cached && Date.now() - cached.at < 30 * DAY) { weather.set(key, cached.w); return; }
+  weather.set(key, 'pending');
+  const la = lat.toFixed(2), lo = lon.toFixed(2);
   let rec = null;
-  const fetchable = w.isNow || (w.time <= Date.now() && date >= '1940-01-01');
-  if (fetchable) {
-    const la = w.lat.toFixed(2), lo = w.lon.toFixed(2);
-    if (api.available) {            // server route = Upstash-cached Open-Meteo
-      try {
-        const r = await fetchT(`/api/journey?resource=weather&lat=${la}&lon=${lo}&date=${date}`);
-        if (r.ok) rec = (await r.json()).weather || null;
-      } catch { /* fall through */ }
-    }
-    if (!rec) { try { rec = await openMeteoDirect(la, lo, date); } catch { /* fall through */ } }
-  }
-  if (rec && typeof rec.temp === 'number') w.isNow || store.set(`journey:wx:${key}`, { at: Date.now(), w: rec });
-  else rec = simulateWeather(w.lat, w.lon, w.time, w.isNow);
-  weather.set(key, rec);
+  if (api.server) { const r = await apiCall(`/api/journey?resource=weather&lat=${la}&lon=${lo}&date=${date}`); if (r.ok) rec = r.data.weather || null; }
+  else { try { rec = await openMeteoDirect(la, lo, date); } catch { rec = null; } }
+  if (rec && typeof rec.temp === 'number') { if (!live) store.set(`journey:wx2:${key}`, { at: Date.now(), w: rec }); } else rec = null;
+  weather.set(key, rec);                           // no data → no weather display. Nothing is simulated.
+}
+/** What may honestly be shown for a place right now: { plan: live | historical | season | none, rec }. */
+function weatherView(w, atToday = false) {
+  const plan = core.weatherPlan(w.wp, { nowMs, atToday });
+  const rec = plan.kind === 'live' ? weather.get(wxKey(w.lat, w.lon, 'now')) : plan.kind === 'historical' ? weather.get(wxKey(w.lat, w.lon, plan.date)) : null;
+  return { plan, rec: rec && typeof rec === 'object' ? rec : null, pending: rec === 'pending' };
 }
 async function loadAllWeather() {
-  const queue = [...model.wps];
-  const worker = async () => { while (queue.length) { await loadWeather(queue.shift()); ui.dirty = true; } };
+  const queue = [];
+  for (const w of model.wps) {
+    const p = core.weatherPlan(w.wp, { nowMs });
+    if (p.kind === 'historical') queue.push([w.lat, w.lon, p.date]);
+    if (w.current) queue.push([w.lat, w.lon, 'now']);
+  }
+  const worker = async () => { while (queue.length) { await loadWeather(...queue.shift()); ui.dirty = true; } };
   await Promise.all([worker(), worker(), worker()]);
-  $('#badgeSim').hidden = !model.wps.some((w) => weatherOf(w)?.simulated);
   ui.dirty = true;
 }
 
 /* ------------------------------------------------------------------ 5. time model */
-const model = { wps: [], arcs: [], t0: 0, t1: 1, span: 1, stats: { places: 0, countries: 0, km: 0 } };
-let T = 0;   // ← the scrubber: single source of truth for every animation
-
-function continentOf(lat, lon) {      // coarse boxes — only used for the "first continent crossed" milestone
-  if (lat < -60) return 'Antarctica';
-  if (lon < -170 || (lon > 160 && lat < 0)) return 'Oceania';
-  if (lon < -30) return lat >= 13 ? 'North America' : 'South America';
-  if (lon < 60) return lat >= 36 ? (lon < 45 ? 'Europe' : 'Asia') : (lat > 12 && lon > 35 ? 'Asia' : 'Africa');
-  return lat < -10 ? 'Oceania' : 'Asia';
-}
+const model = { wps: [], arcs: [], tl: core.buildTimeline(journey, nowMs), t0: 0, t1: 1, birth: null };
+let T = 0;   // ← journeyTime: the scrubber, single source of truth for every visual
 
 function buildModel() {
-  const wps = journey.waypoints
-    .map((w, src) => ({ ...w, src, isNow: isNow(w), time: wpTime(w) }))
-    .filter((w) => hasCoords(w) && Number.isFinite(w.time))
-    .sort((a, b) => (a.time - b.time) || (a.isNow - b.isNow) || (a.src - b.src));
-  model.wps = wps; model.arcs = [];
-  if (!wps.length) { model.t0 = nowMs - YEAR; model.t1 = nowMs; model.span = YEAR; model.stats = { places: 0, countries: 0, km: 0 }; return; }
-  model.t0 = wps[0].time;
-  model.t1 = Math.max(nowMs, wps[wps.length - 1].time);
-  model.span = Math.max(model.t1 - model.t0, DAY);
-  let maxDur = 1, km = 0;
-  wps.forEach((w, i) => {
-    w.t = (w.time - model.t0) / model.span;
-    w.end = i < wps.length - 1 ? wps[i + 1].time : model.t1;
-    w.dur = Math.max(0, w.end - w.time);
-    w.pos = latLonToVec3(w.lat, w.lon, 1);
-    w.cont = continentOf(w.lat, w.lon);
-    w.visit = w.kind ? w.kind === 'visit' : (i > 0 && !w.isNow && w.dur > 0 && w.dur < 60 * DAY);   // home vs. short visit
-    maxDur = Math.max(maxDur, w.dur);
+  const tl = core.buildTimeline(journey, nowMs);
+  const prevShown = new Map(model.wps.map((w) => [w.id, w.shown]));         // keep halos steady across an edit
+  model.tl = tl; model.t0 = tl.t0; model.t1 = tl.t1; model.birth = core.resolveBirth(journey); model.arcs = [];
+  const wps = model.wps = tl.events.map((e) => {
+    const wp = e.wp, halo = core.haloFor(wp.stayType, e.durMs);
+    return {
+      id: wp.id, wp, time: e.time, t: e.t, end: e.endMs, dur: e.durMs, current: wp.isCurrent,
+      place: wp.placeName, region: wp.region, country: wp.country, cc: wp.countryCode, lat: wp.latitude, lon: wp.longitude,
+      stage: wp.chapter, type: wp.stayType, note: wp.note, visit: wp.stayType === 'visit',
+      prec: wp.startDate ? core.parsePartialDate(wp.startDate).precision : null,
+      pos: latLonToVec3(wp.latitude, wp.longitude, 1), rc: halo.rc, rs: halo.rs,
+      size: wp.stayType === 'visit' ? 0.8 : halo.warm > 0.7 ? 1.25 : 1.05, shown: prevShown.get(wp.id) ?? 0,
+    };
   });
-  wps.forEach((w) => {
-    const q = w.dur > 0 ? Math.sqrt(w.dur / maxDur) : 0.5;
-    w.size = w.dur > 0 ? 0.7 + 0.95 * q : 1;
-    w.rc = lerp(3.5, 10, q);      // Discovery halo core radius (degrees of arc)
-    w.rs = lerp(8, 28, q);        // regional spill radius: town-scale for visits → country-scale for long stays
-  });
+  // Narrative connections between consecutive events. Two records in the same place (a school in your home town, a second stay) get no route.
   for (let i = 0; i < wps.length - 1; i++) {
-    const a = wps[i], b = wps[i + 1], angle = a.pos.angleTo(b.pos);
-    km += angle * EARTH_KM;
-    const gap = b.t - a.t;
-    const w = angle > 1e-4 ? Math.min(gap, Math.max(CONFIG.travelShare * gap, CONFIG.travelFloor)) : 0;
+    const a = wps[i], b = wps[i + 1], angle = a.pos.angleTo(b.pos), gap = b.t - a.t;
+    const w = angle > 1e-3 ? Math.min(gap, Math.max(CONFIG.travelShare * gap, CONFIG.travelFloor)) : 0;
     model.arcs.push({ from: i, to: i + 1, angle, tEnd: b.t, w, curve: null, mesh: null });
   }
-  wps.forEach((w, i) => {         // bloom starts on final approach and finishes just after landing (by T = 1 at the latest)
-    const pre = i > 0 ? Math.min(0.5 * model.arcs[i - 1].w, CONFIG.bloomWindow) : 0;
-    w.b0 = w.t - pre; w.bLen = Math.min(CONFIG.bloomWindow, 1 - w.b0);
-  });
-  model.stats = {
-    places: new Set(wps.map((w) => `${w.place}|${w.country}`.toLowerCase())).size,
-    countries: new Set(wps.map((w) => w.country.toLowerCase()).filter(Boolean)).size,
-    km,
-  };
 }
-
-/** Discovery: how far waypoint i's light has bloomed at the current T (0 → dark, 1 → fully awake). */
-function bloomOf(i) {
-  const w = model.wps[i];
-  if (i === 0) return lerp(0.6, 1, smooth(T / CONFIG.bloomWindow));     // the birthplace always glows
-  if (T < w.b0) return 0;
-  if (w.bLen <= 1e-9 || T >= w.b0 + w.bLen) return 1;
-  return smooth((T - w.b0) / w.bLen);
-}
+/** Discovery rule, as a pure function of T: a place may be lit if and only if the timeline has reached it. */
+const isReached = (i) => model.wps[i].t <= T + 1e-9;
 
 /** Everything about "where are we in the story" as a pure function of t. */
 const st = { n: 0, idx: 0, travel: null, ms: 0, lat: 0, center: new THREE.Vector3(0, 0, 1), normal: new THREE.Vector3(0, 0, 1) };
 function stateAt(t) {
   const { wps, arcs } = model;
-  st.n = wps.length; st.travel = null; st.ms = model.t0 + t * model.span;
+  st.n = wps.length; st.travel = null; st.ms = model.tl.timeOfT(t);
   if (!st.n) return st;
-  let idx = 0;
-  for (let i = 1; i < st.n; i++) { if (wps[i].t <= t + 1e-9) idx = i; else break; }
+  const idx = Math.max(0, core.activeIndex(wps, t));
   st.idx = idx;
   const a = arcs[idx];
   if (a && a.w > 0 && a.curve) {
@@ -713,18 +823,12 @@ function stateAt(t) {
   st.normal.copy(st.center).normalize();
   return st;
 }
-function ageAt(ms) {   // whole calendar years since the first waypoint, plus a smooth fraction for the avatar
-  const b = new Date(model.t0), d = new Date(ms);
-  let years = d.getUTCFullYear() - b.getUTCFullYear();
-  if (d.getUTCMonth() < b.getUTCMonth() || (d.getUTCMonth() === b.getUTCMonth() && d.getUTCDate() < b.getUTCDate())) years--;
-  return { years: Math.max(0, years), frac: Math.max(0, (ms - model.t0) / YEAR) };
-}
 
 /* ------------------------------------------------------------------ 6. scene */
 const canvas = $('#scene');
 let renderer, scene, camera, controls, globeMat, atmoMat, glowTex;
 const markerGroup = new THREE.Group(), arcGroup = new THREE.Group();
-const gfx = { markers: [], avatar: null, comet: [], rain: null, confetti: null };
+const gfx = { markers: [], avatar: null, comet: [], rain: null, preview: null };
 const ARC_SEG = 128, ARC_RAD = 6;
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -752,7 +856,7 @@ const GLOBE_VERT = /* glsl */`
   }`;
 const GLOBE_FRAG = /* glsl */`
   uniform sampler2D uMap; uniform sampler2D uMask; uniform float uHasMap; uniform float uDark;
-  uniform vec3 uSun; uniform vec3 uTint; uniform float uSeason; uniform float uHemi; uniform vec3 uActive; uniform float uPulse;
+  uniform vec3 uSun; uniform vec3 uTint; uniform float uSeason; uniform float uHemi; uniform vec3 uActive; uniform float uPulse; uniform vec3 uPreview; uniform float uPreviewAmt;
   varying vec2 vUv; varying vec3 vN; varying vec3 vView;
   float hash(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
   float noise(vec3 p) {
@@ -787,11 +891,12 @@ const GLOBE_FRAG = /* glsl */`
     float frost = smoothstep(0.52, 0.96, lat) * clamp(-uSeason, 0.0, 1.0);
     col = mix(col, vec3(0.80, 0.90, 1.0) * (0.25 + 0.75 * day), frost * 0.42);  // winter frost
     col += vec3(0.11, 0.05, 0.0) * smoothstep(0.0, 0.8, lat) * clamp(uSeason, 0.0, 1.0) * day;   // summer bloom
-    col += uTint * fres * 0.45;
+    col += uTint * fres * 0.26;                                              // restrained limb glow: the globe, not its halo, is the hero
 
     // ---- Discovery: black planet, day texture × light mask
     if (uDark > 0.001) {
-      float lit = texture2D(uMask, vUv).r;
+      float pa = acos(clamp(dot(n, uPreview), -1.0, 1.0));
+      float lit = max(texture2D(uMask, vUv).r, exp(-(pa * pa) / 0.012) * uPreviewAmt);          // a location being confirmed in the editor gets a soft patch of map light
       float ang = acos(clamp(dot(n, uActive), -1.0, 1.0));
       float pulse = exp(-(ang * ang) / 0.0075) * uPulse;                      // the active waypoint breathes brighter
       vec3 silhouette = vec3(0.0025, 0.0035, 0.008) + (1.0 - ocean) * vec3(0.007, 0.008, 0.012) * (0.5 + lum);   // continents barely readable
@@ -822,12 +927,12 @@ function initScene() {
   camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
   camera.position.set(0, 0.6, 4.2);
   glowTex = makeGlowTexture();
-  const mobile = matchMedia('(max-width: 640px)').matches;
+  const mobile = matchMedia('(max-width: 760px)').matches;
 
   // Globe
   globeMat = new THREE.ShaderMaterial({
     vertexShader: GLOBE_VERT, fragmentShader: GLOBE_FRAG,
-    uniforms: { uMap: { value: null }, uMask: { value: null }, uHasMap: { value: 0 }, uDark: { value: 0 }, uSun: { value: new THREE.Vector3(1, 0.3, 1) }, uTint: { value: new THREE.Color('#6fb6ff') }, uSeason: { value: 0 }, uHemi: { value: 1 }, uActive: { value: new THREE.Vector3(0, 0, 1) }, uPulse: { value: 0 } },
+    uniforms: { uMap: { value: null }, uMask: { value: null }, uHasMap: { value: 0 }, uDark: { value: 0 }, uSun: { value: new THREE.Vector3(1, 0.3, 1) }, uTint: { value: new THREE.Color('#6fb6ff') }, uSeason: { value: 0 }, uHemi: { value: 1 }, uActive: { value: new THREE.Vector3(0, 0, 1) }, uPulse: { value: 0 }, uPreview: { value: new THREE.Vector3(0, 0, 1) }, uPreviewAmt: { value: 0 } },
   });
   scene.add(new THREE.Mesh(new THREE.SphereGeometry(1, mobile ? 48 : 96, mobile ? 32 : 64), globeMat));
   new THREE.TextureLoader().setCrossOrigin('anonymous').load(CONFIG.earthTexture, (tex) => {
@@ -853,11 +958,11 @@ function initScene() {
   scene.add(new THREE.AmbientLight(0xffffff, 1.15));            // soft ambient + a key light that rides with the camera (for the avatar)
   gfx.key = new THREE.DirectionalLight(0xffffff, 1.3); scene.add(gfx.key);
   initMask(mobile); globeMat.uniforms.uMask.value = mask.tex;
-  buildAvatar(); buildComet(); buildWeatherParticles(); buildConfetti();
+  buildAvatar(); buildComet(); buildWeatherParticles(); buildPreview();
 
   controls = new OrbitControls(camera, canvas);
   controls.enablePan = false; controls.enableDamping = true; controls.dampingFactor = 0.08;
-  controls.rotateSpeed = 0.5; controls.zoomSpeed = 0.6; controls.minDistance = 1.5; controls.maxDistance = 9; controls.autoRotateSpeed = 0.35;
+  controls.rotateSpeed = 0.5; controls.zoomSpeed = 0.6; controls.minDistance = 1.5; controls.maxDistance = 9;
 
   resize();
   addEventListener('resize', resize);
@@ -869,12 +974,15 @@ function resize() {
   camera.aspect = w / h;
   const tl = $('#timeline').getBoundingClientRect().height || 170;
   document.documentElement.style.setProperty('--tl-h', `${Math.round(tl)}px`);
-  camera.setViewOffset(w, h, 0, Math.round(tl * 0.42), w, h);     // nudge the globe up, clear of the timeline
+  // Keep the globe centred in the space that is actually free: above the timeline, between the editor panels (or above the phone sheet).
+  const phoneEdit = isPhone() && editorOpen();
+  camera.setViewOffset(w, h, Math.round(isPhone() ? 0 : (layout.pr - layout.pl) / 2), Math.round(phoneEdit ? h * 0.33 : tl * 0.42), w, h);
   camera.updateProjectionMatrix();
 }
 function baseDist() {
-  const vHalf = THREE.MathUtils.degToRad(camera.fov / 2), hHalf = Math.atan(Math.tan(vHalf) * camera.aspect);
-  const fill = camera.aspect < 1 ? lerp(0.98, 0.66, smooth((camera.aspect - 0.45) / 0.55)) : 0.66;
+  const free = Math.max(0.3, (innerWidth - (isPhone() ? 0 : layout.pl + layout.pr)) / innerHeight);      // aspect of the unobstructed area
+  const vHalf = THREE.MathUtils.degToRad(camera.fov / 2), hHalf = Math.atan(Math.tan(vHalf) * free);
+  const fill = free < 1 ? lerp(0.98, 0.66, smooth((free - 0.45) / 0.55)) : 0.66;
   return clamp(1 / Math.sin(Math.min(vHalf, hHalf) * fill), 2.4, 7.5);
 }
 
@@ -888,11 +996,11 @@ const diaGeo = new THREE.OctahedronGeometry(0.015, 0);
 const VISIT_COLOR = '#bfefff', ARC_COLOR = '#ffe1a6';
 
 /* Discovery light mask — a hidden equirectangular canvas, redrawn only when the lit state changes. */
-const mask = { canvas: null, ctx: null, tex: null, sprite: null, sig: '', W: 1024, H: 512 };
+const mask = { canvas: null, ctx: null, tex: null, sprite: null, sig: '', W: 2048, H: 1024 };
 function initMask(mobile) {
-  mask.W = mobile ? 512 : 1024; mask.H = mask.W / 2;
+  mask.W = mobile ? 1024 : 2048; mask.H = mask.W / 2;
   mask.canvas = document.createElement('canvas'); mask.canvas.width = mask.W; mask.canvas.height = mask.H;
-  mask.ctx = mask.canvas.getContext('2d');
+  mask.ctx = mask.canvas.getContext('2d', { willReadFrequently: false });
   const sp = document.createElement('canvas'); sp.width = sp.height = 128;       // one cached gaussian sprite, reused for every halo
   const g = sp.getContext('2d'), grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
   for (let k = 0; k <= 12; k++) { const x = k / 12; grad.addColorStop(x, `rgba(255,255,255,${(Math.exp(-x * x * 3.2) * (1 - x ** 4)).toFixed(4)})`); }
@@ -902,29 +1010,31 @@ function initMask(mobile) {
   mask.tex.wrapS = THREE.RepeatWrapping; mask.tex.generateMipmaps = false; mask.tex.minFilter = THREE.LinearFilter;
   mask.ctx.fillStyle = '#000'; mask.ctx.fillRect(0, 0, mask.W, mask.H);
 }
-function updateMask() {
-  const { wps } = model, { ctx, W, H } = mask, b = [];
-  let sig = '', lit = 0;
+/**
+ * WHAT is lit is decided by journeyTime alone (isReached). HOW a place gets there is a short wall-clock ease,
+ * so a place fades in when reached and fades out when the timeline rewinds past it. The canvas is redrawn only
+ * while one of those eases is running — never on an idle frame.
+ */
+function updateMask(dt = 0) {
+  const { wps } = model, { ctx, W, H } = mask;
+  let sig = '';
   for (let i = 0; i < wps.length; i++) {
-    b[i] = bloomOf(i); sig += Math.round(b[i] * 200) + ',';
-    lit += b[i] * (1 - Math.cos(wps[i].rs * 0.55 * Math.PI / 180)) / 2;          // spherical-cap share of the sphere
+    const w = wps[i], target = isReached(i) ? 1 : 0;
+    w.shown = reduced ? target : clamp(w.shown + (target ? dt / CONFIG.bloomIn : -dt / CONFIG.bloomOut));
+    sig += Math.round(smooth(w.shown) * 200) + ',';
   }
-  discovered = Math.min(100, lit * 100);
   if (sig === mask.sig) return;
   mask.sig = sig;
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'lighter';
-  wps.forEach((w, i) => {
-    const e = b[i]; if (e <= 0) return;
-    const x = (w.lon + 180) / 360 * W, y = (90 - w.lat) / 180 * H;
+  wps.forEach((w) => {
+    const e = smooth(w.shown); if (e <= 0) return;
+    const y = (90 - w.lat) / 180 * H;
     const stretch = 1 / Math.max(0.2, Math.cos(w.lat * Math.PI / 180));         // equirectangular: circles widen toward the poles
-    for (const [r, a] of [[w.rs, 0.62], [w.rc, 1]]) {                             // regional spill, then the bright core
-      const ry = r * e / 180 * H, rx = r * e / 360 * W * stretch;
+    for (const [r, a] of [[w.rs, 0.62], [w.rc, 1]]) {                             // soft local spill, then the bright core
+      const ry = r * (0.55 + 0.45 * e) / 180 * H, rx = r * (0.55 + 0.45 * e) / 360 * W * stretch;
       ctx.globalAlpha = a * e;
-      for (const dx of [-W, 0, W]) {                                            // anti-meridian: draw the wrapped copies too
-        if (x + dx + rx < 0 || x + dx - rx > W) continue;
-        ctx.drawImage(mask.sprite, x + dx - rx, y - ry, rx * 2, ry * 2);
-      }
+      for (const cx of core.maskCopies(w.lon, W, rx)) ctx.drawImage(mask.sprite, cx - rx, y - ry, rx * 2, ry * 2);   // includes the copy across the ±180° seam
     }
   });
   mask.tex.needsUpdate = true;
@@ -936,7 +1046,7 @@ function rebuildScene() {
     const color = new THREE.Color(w.visit ? VISIT_COLOR : stageInfo(w.stage).color);
     const g = new THREE.Group(); g.position.copy(w.pos).multiplyScalar(1.006);
     const dot = new THREE.Mesh(w.visit ? diaGeo : dotGeo, new THREE.MeshBasicMaterial({ color, transparent: true })); dot.userData.shared = true;   // ◆ visit · ● home
-    const glow = glowSprite(color, 0.1 * w.size);
+    const glow = glowSprite(color, 0.085 * w.size);
     const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color, transparent: true, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
     ring.userData.shared = true;
     g.add(dot, glow, ring); markerGroup.add(g);
@@ -944,7 +1054,7 @@ function rebuildScene() {
     gfx.markers.push({ g, dot, glow, ring, size: w.size });
   });
   model.arcs.forEach((a) => {
-    if (a.angle <= 1e-4) return;
+    if (a.w <= 0) return;                    // same place twice (or a school in your home town): no route to draw
     const A = model.wps[a.from].pos, B = model.wps[a.to].pos;
     let axis = new THREE.Vector3().crossVectors(A, B);
     if (axis.lengthSq() < 1e-8) axis.crossVectors(A, Math.abs(A.y) < 0.9 ? UP : new THREE.Vector3(1, 0, 0));   // antipodal: any great circle
@@ -978,9 +1088,9 @@ function buildAvatar() {
   const mk = (geo, parent) => { const m = new THREE.Mesh(geo, skin); parent.add(m); return m; };
   const parts = { legL: mk(limbGeo, body), legR: mk(limbGeo, body), torso: mk(torsoGeo, upper), head: mk(headGeo, upper), armL: mk(limbGeo, upper), armR: mk(limbGeo, upper) };
   body.add(upper);
-  const base = new THREE.Mesh(new THREE.RingGeometry(0.03, 0.036, 40), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+  const base = new THREE.Mesh(new THREE.RingGeometry(0.018, 0.021, 40), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
   base.rotation.x = -Math.PI / 2; base.position.y = 0.002;
-  const halo = glowSprite(0xffffff, 0.16); halo.material.opacity = 0.55;
+  const halo = glowSprite(0xffffff, 0.1); halo.material.opacity = 0.4;
   g.add(body, base, halo); scene.add(g);
   gfx.avatar = { g, body, upper, parts, skin, base, halo, color: new THREE.Color() };
 }
@@ -1029,146 +1139,136 @@ function buildWeatherParticles() {      // rain + snow share ONE Points object, 
   pts.frustumCulled = false; pts.visible = false; scene.add(pts);
   gfx.rain = { pts, seeds, e1: new THREE.Vector3(), e2: new THREE.Vector3() };
 }
-function buildConfetti() {
-  const n = CONFIG.confettiParticles, geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
-  const colors = new Float32Array(n * 3), c = new THREE.Color(), palette = ['#f6c453', '#ff6fae', '#5aa9ff', '#4ade9b', '#ffffff'];
-  for (let i = 0; i < n; i++) { c.set(palette[i % palette.length]); colors.set([c.r, c.g, c.b], i * 3); }
-  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ map: glowTex, size: 0.022, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-  pts.frustumCulled = false; pts.visible = false; scene.add(pts);
-  gfx.confetti = { pts, vel: Array.from({ length: n }, () => new THREE.Vector3()), origin: new THREE.Vector3(), normal: new THREE.Vector3(), life: 9 };
+function buildPreview() {      // the "is this the right place?" marker shown while a location is being confirmed in the editor
+  const g = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.03, 0.034, 56), new THREE.MeshBasicMaterial({ color: 0xfff3d6, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
+  const core2 = new THREE.Mesh(new THREE.SphereGeometry(0.009, 14, 10), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+  const glow = glowSprite(0xffe2a8, 0.16);
+  g.add(ring, core2, glow); g.visible = false; scene.add(g);
+  gfx.preview = { g, ring, glow, on: false, amt: 0, pos: new THREE.Vector3(0, 0, 1) };
 }
-function burstConfetti() {
-  if (reduced) return;
-  const c = gfx.confetti; c.origin.copy(gfx.avatar.g.position).addScaledVector(st.normal, 0.09); c.normal.copy(st.normal); c.life = 0;
-  c.vel.forEach((v) => v.randomDirection().multiplyScalar(0.05 + Math.random() * 0.09).addScaledVector(c.normal, 0.09));
-  c.pts.visible = true;
+function setPreview(lat, lon, fly = true) {
+  const p = gfx.preview; latLonToVec3(lat, lon, 1, p.pos);
+  p.g.position.copy(p.pos).multiplyScalar(1.008); p.ring.lookAt(p.pos.clone().multiplyScalar(3)); p.on = true;
+  if (fly) flyToPos(p.pos);
 }
+function clearPreview() { if (gfx.preview) gfx.preview.on = false; }
 
 /* ------------------------------------------------------------------ 7. per-frame state */
-let playing = false, speed = 1, tween = null, ambient = 0, lastAge = null;
-let follow = true, camBlend = 1, camFly = null, orbit = null, lastInteract = 0;
+let playing = false, speed = 1, tween = null, ambient = 0;
+let follow = true, camBlend = 1, camFly = null, orbit = null;
 let mode = store.get('journey:mode') === 'full' ? 'full' : 'dark';     // both modes share T, playback and every function below
-let darkAmt = mode === 'dark' ? 1 : 0, chapters = false, discovered = 0;
-const fired = new Set();                                               // milestone ids already flashed
+let darkAmt = mode === 'dark' ? 1 : 0, chapters = false, picking = false;
+let figureOn = store.get('journey:figure') !== false, highlight = null;
 const camFrom = new THREE.Vector3(), camGoal = new THREE.Vector3();
 const _v = new THREE.Vector3(), _v2 = new THREE.Vector3(), _q = new THREE.Quaternion(), _qi = new THREE.Quaternion();
 const _e1 = new THREE.Vector3(), _e2 = new THREE.Vector3(), _n = new THREE.Vector3(), _f = new THREE.Vector3(), _x = new THREE.Vector3(), _m4 = new THREE.Matrix4();
 const _colorWhite = new THREE.Color('#ffffff'), _tint = new THREE.Color();
-const C_NEUTRAL = new THREE.Color('#6fb6ff'), C_YOUNG = new THREE.Color('#ff8a3d'), C_GROWN = new THREE.Color('#58b4ff');
+const C_STEEL = new THREE.Color('#5d7fb3'), C_NEUTRAL = new THREE.Color('#6fb6ff'), C_YOUNG = new THREE.Color('#ffb070'), C_GROWN = new THREE.Color('#9cc4ee');
 const SEASON_COLORS = [new THREE.Color('#ffc48a'), new THREE.Color('#ffa24d'), new THREE.Color('#b5e2ff'), new THREE.Color('#8fe6a2')];   // summer · autumn amber · winter · spring green
 
 function tangentBasis(n, e1, e2) {
   e1.crossVectors(Math.abs(n.y) > 0.95 ? _v2.set(1, 0, 0) : UP, n).normalize();
   e2.crossVectors(n, e1).normalize();
 }
-function flash(text) {
-  const el = $('#flash'); el.textContent = text; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
-  $('#live').textContent = text;
-}
-function checkMilestones(reached) {       // Discovery only; each fires once per run
-  const { wps } = model, hits = [];
-  const add = (id, text) => { if (!fired.has(id)) { fired.add(id); hits.push(text); } };
-  if (reached >= 1) add('country', `First country lit${wps[0].country ? ` — ${flag(wps[0].country)} ${wps[0].country}` : ''}`);
-  for (let i = 1; i < reached; i++) if (wps[i].cont !== wps[0].cont) { add('continent', `First continent crossed — ${wps[i].cont}`); break; }
-  for (const k of [3, 5, 10, 15, 20, 30, 50]) if (reached >= k) add(`places${k}`, `${k} places awakened`);
-  if (hits.length) flash(hits[hits.length - 1]);
-}
 
-function applyState(dt) {
+function applyState(dt, easeDt = dt) {
   stateAt(T);
   const { wps, arcs } = model, n = st.n;
-  const target = mode === 'dark' ? 1 : 0;
+  const target = mode === 'dark' && !picking ? 1 : 0;      // choosing a spot on the globe needs the map lit
   darkAmt = reduced ? target : clamp(darkAmt + Math.sign(target - darkAmt) * dt / 0.7);     // mode cross-fade
-  const dark = smooth(darkAmt);
-  globeMat.uniforms.uDark.value = dark;
-  gfx.avatar.g.visible = n > 0;
-  if (!n) { gfx.comet.forEach((s) => (s.visible = false)); gfx.rain.pts.visible = false; discovered = 0; return; }
-  const age = ageAt(st.ms), season = seasonAt(st.ms, st.lat);
-  let reachedCount = 0;
+  globeMat.uniforms.uDark.value = smooth(darkAmt);
 
-  // Waypoint markers — reached ones glow, the active one pulses hardest; in Discovery the unvisited do not exist yet
+  // Location preview (editor): a pale ring, and a soft patch of map light under it so the geography can be checked even in Discovery
+  const pv = gfx.preview;
+  pv.amt = reduced ? (pv.on ? 1 : 0) : clamp(pv.amt + (pv.on ? dt / 0.4 : -dt / 0.3));
+  pv.g.visible = pv.amt > 0.01;
+  if (pv.g.visible) {
+    const k = reduced ? 0.5 : (ambient * 0.7) % 1;
+    pv.ring.scale.setScalar(1 + k * 1.6); pv.ring.material.opacity = (1 - k) * pv.amt; pv.glow.material.opacity = 0.8 * pv.amt;
+  }
+  globeMat.uniforms.uPreview.value.copy(pv.pos); globeMat.uniforms.uPreviewAmt.value = pv.amt;
+
+  gfx.avatar.g.visible = false;
+  if (!n) { globeMat.uniforms.uPulse.value = 0; gfx.comet.forEach((s) => (s.visible = false)); gfx.rain.pts.visible = false; atmoMat.uniforms.uColor.value.copy(C_NEUTRAL).lerp(C_STEEL, 0.75 * smooth(darkAmt)); atmoMat.uniforms.uPower.value = 0.5 * (1 - 0.9 * smooth(darkAmt)); updateMask(easeDt); ui.age = null; ui.season = null; return; }
+  const age = core.ageAt(model.birth, st.ms), active = wps[st.idx];
+  const seasonKnown = active.prec === 'month' || active.prec === 'day' || (active.current && !active.prec);   // a year-only date carries no season
+  const season = seasonAt(st.ms, st.lat);
+
+  // Place markers — reached ones glow, the active one pulses; in Discovery the unreached do not exist yet
+  const nowT = performance.now();
   gfx.markers.forEach((m, i) => {
-    const reached = wps[i].t <= T + 1e-9, active = i === st.idx && !st.travel;
-    if (reached) reachedCount++;
+    const reached = isReached(i), isActive = i === st.idx && !st.travel;
     m.g.visible = reached || mode !== 'dark';
-    const phase = reduced ? 0.4 : (ambient * (active ? 0.75 : 0.45) + i * 0.37) % 1;
+    const phase = reduced ? 0.4 : (ambient * (isActive ? 0.75 : 0.45) + i * 0.37) % 1;
+    let boost = 1;
+    if (highlight && highlight.id === wps[i].id) {             // "this is the place you just saved": three slow beats, then settle
+      const k = (nowT - highlight.t0) / 2600;
+      if (k >= 1) highlight = null; else if (k > 0) boost = 1 + (reduced ? 0.8 : 1.5 * (1 - k) * Math.abs(Math.sin(k * Math.PI * 3)));
+    }
     m.dot.material.opacity = reached ? 1 : 0.35;
-    m.glow.material.opacity = reached ? (active ? 1 : 0.6) : 0.16;
-    m.glow.scale.setScalar(0.1 * m.size * (active ? 1.45 : 1) * (1 + (reached && !reduced ? 0.1 * Math.sin(ambient * 2.4 + i) : 0)));
-    m.ring.visible = reached;
-    m.ring.scale.setScalar((1 + phase * (active ? 3.2 : 1.8)) * m.size);
-    m.ring.material.opacity = (1 - phase) * (active ? 0.9 : 0.4);
+    m.glow.material.opacity = reached ? (isActive ? 1 : 0.55) : 0.14;
+    m.glow.scale.setScalar(0.085 * m.size * (isActive ? 1.4 : 1) * boost);
+    m.ring.visible = reached && (isActive || boost > 1);
+    m.ring.scale.setScalar((1 + phase * 2.8) * m.size * boost);
+    m.ring.material.opacity = (1 - phase) * 0.8;
   });
 
-  // Arcs — future: hidden · active: drawn to the comet at 1.0 · past: dimmed to 0.3
+  // Routes — future: hidden · being travelled: drawn up to the comet · past: settled to a quiet line
   arcs.forEach((a, k) => {
     if (!a.mesh) return;
     let frac = 0, op = 0;
-    if (k < st.idx) { frac = 1; op = k === st.idx - 1 ? lerp(1, 0.3, clamp((T - a.tEnd) / CONFIG.arcFade)) : 0.3; }
+    if (k < st.idx) { frac = 1; op = k === st.idx - 1 ? lerp(1, 0.28, clamp((T - a.tEnd) / CONFIG.arcFade)) : 0.28; }
     else if (k === st.idx && st.travel) { frac = st.travel.pe; op = 1; }
     a.mesh.visible = frac > 0;
     a.mesh.geometry.setDrawRange(0, Math.ceil(frac * ARC_SEG) * ARC_RAD * 6);
     a.mesh.material.opacity = op;
   });
-
-  // Comet on the active arc
   gfx.comet.forEach((s, i) => {
     s.visible = Boolean(st.travel) && st.travel.p < 1;
     if (s.visible) st.travel.arc.curve.getPointAt(clamp(st.travel.pe - i * 0.016), s.position);
   });
 
-  // Avatar — walks a slow circle around the active waypoint, or flies along the arc; grows with age
-  const av = gfx.avatar, bell = st.travel ? Math.sin(Math.PI * st.travel.pe) : 0;
-  const theta = T * Math.PI * 2 * CONFIG.orbitTurns, r = 0.06 * (1 - bell);
-  tangentBasis(st.normal, _e1, _e2);
-  av.g.position.copy(st.center).addScaledVector(_e1, Math.cos(theta) * r).addScaledVector(_e2, Math.sin(theta) * r);
-  av.g.position.setLength(Math.max(av.g.position.length(), 1.008));
-  _n.copy(av.g.position).normalize();
-  if (st.travel) st.travel.arc.curve.getTangentAt(st.travel.pe, _f);
-  else _f.copy(_e1).multiplyScalar(-Math.sin(theta)).addScaledVector(_e2, Math.cos(theta));
-  _f.addScaledVector(_n, -_f.dot(_n)); if (_f.lengthSq() < 1e-8) _f.copy(_e1); _f.normalize();
-  _x.crossVectors(_n, _f).normalize();
-  av.g.quaternion.setFromRotationMatrix(_m4.makeBasis(_x, _n, _f));              // feet on the ground, facing the way it walks
-  poseAvatar(age.frac, bell, theta);
+  // Figure — only when a birth date makes age meaningful; stands beside the active place, never on top of its marker
+  const av = gfx.avatar;
+  av.g.visible = figureOn && age !== null;
+  if (av.g.visible) {
+    const bell = st.travel ? Math.sin(Math.PI * st.travel.pe) : 0;
+    const theta = T * Math.PI * 2 * CONFIG.orbitTurns, r = 0.075 * (1 - bell);
+    tangentBasis(st.normal, _e1, _e2);
+    av.g.position.copy(st.center).addScaledVector(_e1, Math.cos(theta) * r).addScaledVector(_e2, Math.sin(theta) * r);
+    av.g.position.setLength(Math.max(av.g.position.length(), 1.008));
+    _n.copy(av.g.position).normalize();
+    if (st.travel) st.travel.arc.curve.getTangentAt(st.travel.pe, _f);
+    else _f.copy(_e1).multiplyScalar(-Math.sin(theta)).addScaledVector(_e2, Math.cos(theta));
+    _f.addScaledVector(_n, -_f.dot(_n)); if (_f.lengthSq() < 1e-8) _f.copy(_e1); _f.normalize();
+    _x.crossVectors(_n, _f).normalize();
+    av.g.quaternion.setFromRotationMatrix(_m4.makeBasis(_x, _n, _f));              // feet on the ground, facing the way it walks
+    poseAvatar(age.frac, bell, theta);
+  }
 
-  // Season: summer warmth, autumn amber, winter cool, spring green — by date and the active hemisphere
+  // Season grade — by date and hemisphere, and only when the date is precise enough to imply a season
   let wsum = 0; _tint.setRGB(0, 0, 0);
   SEASON_COLORS.forEach((c, i) => { const w = Math.max(0, Math.cos(season.phase - i * Math.PI / 2)); wsum += w; _tint.r += c.r * w; _tint.g += c.g * w; _tint.b += c.b * w; });
   _tint.multiplyScalar(1 / wsum);
-  const tint = _tint.lerpColors(C_NEUTRAL, _tint.clone(), clamp(Math.abs(st.lat) / 35, 0.2, 1));   // seasons fade toward the equator
-  globeMat.uniforms.uTint.value.copy(tint); globeMat.uniforms.uSeason.value = season.s; globeMat.uniforms.uHemi.value = st.lat >= 0 ? 1 : -1;
-  atmoMat.uniforms.uColor.value.copy(tint); atmoMat.uniforms.uPower.value = (0.62 + 0.14 * season.s) * (1 - 0.93 * dark);
+  const tint = _tint.lerpColors(C_NEUTRAL, _tint.clone(), seasonKnown ? clamp(Math.abs(st.lat) / 35, 0.2, 1) : 0);
+  globeMat.uniforms.uTint.value.copy(tint); globeMat.uniforms.uSeason.value = seasonKnown ? season.s : 0; globeMat.uniforms.uHemi.value = st.lat >= 0 ? 1 : -1;
+  atmoMat.uniforms.uColor.value.copy(C_NEUTRAL).lerp(tint, 0.35).lerp(C_STEEL, 0.75 * smooth(darkAmt));   // season tints the air only slightly; in Discovery the rim is a cool steel — the only warm light is where life happened
+  atmoMat.uniforms.uPower.value = (0.5 + 0.12 * (seasonKnown ? season.s : 0)) * (1 - 0.9 * smooth(darkAmt));
   const decl = 23.44 * Math.sin(2 * Math.PI * ((st.ms - Date.UTC(new Date(st.ms).getUTCFullYear(), 0, 1)) / DAY - 81) / 365.25);
   const focusLon = Math.atan2(st.normal.z, -st.normal.x) * 180 / Math.PI - 180;
-  latLonToVec3(decl, focusLon + 38, 1, globeMat.uniforms.uSun.value);     // sun tilts with the calendar, keeps the story in daylight
+  latLonToVec3(seasonKnown ? decl : 0, focusLon + 38, 1, globeMat.uniforms.uSun.value);     // keeps the story in daylight
 
-  // Discovery light: mask redraws only when a bloom value changes; the active waypoint pulses in the shader
-  updateMask();
-  globeMat.uniforms.uActive.value.copy(wps[st.idx].pos);
-  globeMat.uniforms.uPulse.value = st.travel ? 0 : bloomOf(st.idx) * (reduced ? 0.8 : 0.6 + 0.4 * Math.sin(ambient * 2.6));
-  if (mode === 'dark' && T > 0) checkMilestones(reachedCount);
+  // Discovery light
+  updateMask(easeDt);
+  globeMat.uniforms.uActive.value.copy(active.pos);
+  globeMat.uniforms.uPulse.value = st.travel ? 0 : smooth(active.shown) * (reduced ? 0.8 : 0.6 + 0.4 * Math.sin(ambient * 2.6));
 
-  // Confetti when a whole year of life ticks over (either direction)
-  if (lastAge !== null && age.years !== lastAge && Math.abs(age.years - lastAge) === 1 && !tween) burstConfetti();
-  lastAge = age.years;
-  const cf = gfx.confetti;
-  if (cf.pts.visible) {
-    cf.life += dt;
-    if (cf.life > 1.1 || reduced) cf.pts.visible = false;
-    else {
-      const pos = cf.pts.geometry.attributes.position;
-      cf.vel.forEach((v, i) => { _v.copy(cf.origin).addScaledVector(v, cf.life).addScaledVector(cf.normal, -0.11 * cf.life * cf.life); pos.setXYZ(i, _v.x, _v.y, _v.z); });
-      pos.needsUpdate = true; cf.pts.material.opacity = 1 - cf.life / 1.1;
-    }
-  }
-
-  // Rain / snow over the active waypoint (≤ 50 points)
-  const wx = st.travel ? null : weatherOf(wps[st.idx]), kind = wx ? precipKind(wx.code) : null, rain = gfx.rain;
+  // Rain / snow over the active place — only from real weather data for that place and day
+  const wx = st.travel ? null : weatherView(active, T >= 0.9995).rec, kind = wx ? precipKind(wx.code) : null, rain = gfx.rain;
   rain.pts.visible = Boolean(kind) && !reduced;
   if (rain.pts.visible) {
-    const snow = kind === 'snow', pos = rain.pts.geometry.attributes.position, c = wps[st.idx].pos;
+    const snow = kind === 'snow', pos = rain.pts.geometry.attributes.position, c = active.pos;
     tangentBasis(st.normal, rain.e1, rain.e2);
     rain.seeds.forEach((s, i) => {
       const fall = (s.ph + ambient * (snow ? 0.22 : 0.9)) % 1, sway = snow ? Math.sin(ambient * 1.3 + s.sw) * 0.012 : 0;
@@ -1178,19 +1278,18 @@ function applyState(dt) {
     pos.needsUpdate = true;
     rain.pts.material.size = snow ? 0.024 : 0.013; rain.pts.material.color.set(snow ? 0xffffff : 0x8fc7ff);
   }
-
-  ui.season = season; ui.age = age;
+  ui.season = seasonKnown ? season : null; ui.age = age;
 }
 
-/* ---- camera: follows the story (pure function of T); fly-to, finish orbit and idle drift are free-look extras */
+/* ---- camera: follows the story (a pure function of T) until the user takes the globe; jumps fly by the shortest arc */
 function cameraGoal(out) {
   let zoom = 1;
-  if (st.travel && reduced) out.copy(model.wps[st.travel.p < 0.5 ? st.travel.arc.from : st.travel.arc.to].pos);   // instant cut, no fly-to
+  if (st.travel && reduced) out.copy(model.wps[st.travel.p < 0.5 ? st.travel.arc.from : st.travel.arc.to].pos);   // instant cut, no fly-through
   else { out.copy(st.normal); if (st.travel) zoom = 1 + 0.34 * Math.sin(Math.PI * st.travel.pe) * Math.min(1, st.travel.arc.angle / 1.2); }
-  out.y -= 0.28;                 // look from a little to the south so the figure stands upright on screen
+  out.y -= 0.28;                 // look from a little to the south so the active place sits clear of the timeline
   return out.normalize().multiplyScalar(baseDist() * zoom);
 }
-function blendCamera(from, goal, e) {
+function blendCamera(from, goal, e) {            // rotate along the shortest arc between the two view directions
   const a = _v.copy(from).normalize(), b = _v2.copy(goal).normalize();
   _q.setFromUnitVectors(a, b); _qi.identity().slerp(_q, e);
   camera.position.copy(a).applyQuaternion(_qi).multiplyScalar(lerp(from.length(), goal.length(), e));
@@ -1198,37 +1297,35 @@ function blendCamera(from, goal, e) {
 }
 function updateCamera(dt, now) {
   gfx.key.position.copy(camera.position);
-  if (orbit) {                                   // Discovery ending shot: one slow lap around the archipelago of light
+  if (orbit) {                                   // closing shot: one slow lap around everything that was lit
     const el = (now - orbit.t0) / 1000;
-    if (el >= orbit.dur) { orbit = null; lastInteract = 0; }
+    if (el >= orbit.dur) orbit = null;
     else { latLonToVec3(orbit.lat, orbit.lon0 + 360 * el / orbit.dur, orbit.dist, camGoal); blendCamera(orbit.from, camGoal, smooth(el / 1.8)); return; }
   }
-  if (camFly) {                                  // click-to-focus
-    camFly.k = reduced ? 1 : Math.min(1, camFly.k + dt / 1.0);
+  if (camFly) {
+    camFly.k = reduced ? 1 : Math.min(1, camFly.k + dt / camFly.dur);
     blendCamera(camFly.from, camFly.to, smooth(camFly.k));
-    if (camFly.k >= 1) camFly = null;
+    if (camFly.k >= 1) { const resume = camFly.thenFollow; camFly = null; if (resume) { follow = true; camBlend = 1; } }
     return;
   }
   if (follow && st.n) {
     cameraGoal(camGoal);
     if (camBlend < 1) { camBlend = reduced ? 1 : Math.min(1, camBlend + dt / 0.9); blendCamera(camFrom, camGoal, smooth(camBlend)); }
     else { camera.position.copy(camGoal); camera.up.set(0, 1, 0); camera.lookAt(0, 0, 0); }
-  } else {
-    controls.autoRotate = !reduced && !pointer.down && ui.sheet === null && now - lastInteract > 3500;   // gentle drift, pauses on interaction
-    controls.update();
-  }
+  } else controls.update();                      // free look: the globe stays exactly where the user left it
 }
+const syncFollowBtn = (on) => $('#followBtn').setAttribute('aria-pressed', String(on));
 function setFollow(on) {
   if (on) { camFly = null; orbit = null; if (!follow) { camFrom.copy(camera.position); camBlend = 0; } }
-  follow = on;
-  $('#followBtn').setAttribute('aria-pressed', String(on));
+  follow = on; syncFollowBtn(on);
 }
-function freeLook() { camFly = null; orbit = null; lastInteract = performance.now(); setFollow(false); }
-function flyTo(i) {
-  setFollow(false); orbit = null; lastInteract = performance.now();
-  const to = model.wps[i].pos.clone(); to.y -= 0.28; to.normalize().multiplyScalar(baseDist());
-  camFly = { from: camera.position.clone(), to, k: 0 };
+function freeLook() { camFly = null; orbit = null; setFollow(false); }      // the user rotated or zoomed: stop following until they ask again
+function flyToPos(pos, dur = 1.0) {
+  setFollow(false); orbit = null;
+  const to = pos.clone(); to.y -= 0.28; to.normalize().multiplyScalar(baseDist());
+  camFly = { from: camera.position.clone(), to, k: 0, dur, thenFollow: false };
 }
+const flyTo = (i) => flyToPos(model.wps[i].pos);
 function startFinish() {
   playing = false; tween = null; syncPlayButton(); closeSheet(); setFollow(false); camFly = null;
   const c = new THREE.Vector3(); model.wps.forEach((w) => c.add(w.pos));
@@ -1245,32 +1342,35 @@ function setMode(m) {
 }
 
 function setT(v) { T = clamp(v); ui.dirty = true; }
+/** Jump the story to t. The camera flies straight there by the shortest arc instead of chasing every stop in between. */
 function tweenTo(target, ms = 1100) {
-  playing = false; syncPlayButton(); setFollow(true);
-  if (reduced) { tween = null; setT(target); return; }
-  tween = { from: T, to: clamp(target), start: performance.now(), ms };
+  playing = false; syncPlayButton(); orbit = null; target = clamp(target);
+  if (reduced || !model.wps.length) { tween = null; camFly = null; setT(target); follow = true; camBlend = 1; syncFollowBtn(true); return; }
+  tween = { from: T, to: target, start: performance.now(), ms };
+  stateAt(target); cameraGoal(camGoal);
+  follow = false; syncFollowBtn(true);
+  camFly = { from: camera.position.clone(), to: camGoal.clone(), k: 0, dur: ms / 1000 + 0.05, thenFollow: true };
 }
 function setPlaying(on) {
   tween = null;
-  if (on && T >= 1) { setT(0); fired.clear(); }
+  if (on && T >= 1) setT(0);
   playing = on && model.wps.length > 0;
-  if (playing) setFollow(true);
   syncPlayButton();
 }
 
 let lastFrame = performance.now();
 function frame(now) {
   requestAnimationFrame(frame);
-  const dt = Math.min(0.1, (now - lastFrame) / 1000); lastFrame = now; ambient += dt;
+  const real = (now - lastFrame) / 1000, dt = Math.min(0.1, real); lastFrame = now; ambient += dt;
   if (tween) {
     const k = clamp((now - tween.start) / tween.ms);
     setT(lerp(tween.from, tween.to, smooth(k)));
     if (k >= 1) tween = null;
   } else if (playing) {
-    setT(T + dt * speed / CONFIG.playSeconds);
+    setT(T + dt * speed / model.tl.playSeconds);
     if (T >= 1) { playing = false; syncPlayButton(); }
   }
-  applyState(dt);
+  applyState(dt, Math.min(0.5, real));      // eases use real elapsed time, so a slow device fades just as quickly
   updateCamera(dt, now);
   renderer.render(scene, camera);
   if (ui.dirty) renderUI();
@@ -1278,44 +1378,59 @@ function frame(now) {
 }
 
 /* ------------------------------------------------------------------ 8. UI */
-const ui = { dirty: true, season: null, age: null, pinned: null, hover: null, sheet: null, lastIdx: -1, cache: {} };
+const ui = { dirty: true, season: null, age: null, pinned: null, hover: null, sheet: null, lastIdx: -1, cache: {}, pinEls: [] };
 const setText = (id, text) => { if (ui.cache[id] !== text) { ui.cache[id] = text; $(id).textContent = text; } };
+const setChip = (id, text) => { const el = $(id); if (el.hidden !== !text) el.hidden = !text; if (text) setText(id, text); };
 const scrub = $('#scrub');
+const ageLabel = (age) => (age ? `Age ${age.approx ? '≈ ' : ''}${age.years}` : '');
+const wxLine = (rec) => {
+  const d = describeWeather(rec);
+  return rec.kind === 'live' ? `${d.emoji} ${d.temp} · ${d.label}`
+    : `${d.emoji} ${typeof rec.tmin === 'number' && typeof rec.tmax === 'number' ? `${Math.round(rec.tmin)}–${Math.round(rec.tmax)}°C` : d.temp} · ${d.label}`;
+};
 
 function renderUI() {
   ui.dirty = false;
   const { wps } = model;
   scrub.value = String(Math.round(T * 100000));
   $('#fill').style.width = `${T * 100}%`;
-  $('#discChip').hidden = mode !== 'dark';
-  setText('#discChip', `World discovered: ${discovered < 1 ? discovered.toFixed(2) : discovered.toFixed(1)}%`);
-  $('#finishBtn').hidden = !(mode === 'dark' && T >= 1 && wps.length > 1);
+  $('#bands').style.setProperty('--tp', `${T * 100}%`);
+  $('#finishBtn').hidden = !(mode === 'dark' && T >= 1 && wps.length > 1) || editorOpen();
   if (!wps.length) {
-    setText('#chapterText', 'No places yet — open “Edit Journey”'); setText('#dateOut', '—'); setText('#ageOut', ''); setText('#seasonChip', '—'); setText('#weatherChip', '—');
+    setText('#chapterText', 'No places yet'); setText('#dateOut', '—'); setText('#ageOut', ''); setText('#hudWhen', '');
+    setChip('#seasonChip', ''); setChip('#weatherChip', ''); setChip('#discChip', ''); setText('#stats', '');
     return;
   }
   const w = wps[st.idx], info = stageInfo(w.stage), dest = st.travel ? wps[st.travel.arc.to] : null;
-  const date = T >= 1 ? 'Today' : fmtDate(st.ms);
-  setText('#dateOut', date);
-  const born = wps[0].stage === 'birth';
-  setText('#ageOut', `${born ? `Age ${ui.age.years}` : `Year ${ui.age.years + 1}`} · ${dest ? `en route to ${dest.place}` : w.place}`);
-  scrub.setAttribute('aria-valuetext', `${date}, ${born ? `age ${ui.age.years}` : `year ${ui.age.years + 1}`}, ${dest ? `travelling to ${dest.place}` : w.place}`);
-  setText('#chapterText', dest ? `En route → ${dest.place}` : `${info.label} · ${w.place}`);
+  const atToday = T >= 0.9995, when = atToday ? 'Today' : String(new Date(st.ms).getUTCFullYear()), age = ageLabel(ui.age);
+  setText('#dateOut', when);
+  setText('#hudWhen', [when, age].filter(Boolean).join(' · '));
+  const where = dest ? `on the way to ${dest.place}` : `${w.place}${w.wp.startDate ? ` · arrived ${core.formatPartialDate(w.wp.startDate)}` : ''}`;
+  setText('#ageOut', [age, where].filter(Boolean).join(' · '));
+  scrub.setAttribute('aria-valuetext', [when, age, where].filter(Boolean).join(', '));
+  setText('#chapterText', dest ? `On the way → ${dest.place}` : `${info.label} · ${w.place}`);
   $('#chapterDot').style.setProperty('--c', (dest ? stageInfo(dest.stage) : info).color);
-  setText('#seasonChip', `${ui.season.emoji} ${ui.season.name} · ${ui.season.hemi}`);
-  const wx = weatherOf(w);
-  if (dest) setText('#weatherChip', '✈️ In the air');
-  else if (wx) { const d = describeWeather(wx); setText('#weatherChip', `${d.emoji} ${d.temp} · ${wx.kind === 'live' ? 'now' : 'on arrival'}${wx.simulated ? ' ≈' : ''}`); }
-  else setText('#weatherChip', '… weather');
 
-  if (ui.pinEls) ui.pinEls.forEach((el, i) => { el.classList.toggle('reached', wps[i].t <= T + 1e-9); el.classList.toggle('active', i === st.idx && !st.travel); });
+  // Season and weather: only what the stored date precision supports
+  const view = dest ? null : weatherView(w, atToday);
+  let seasonTxt = '', wxTxt = '';
+  if (view && view.plan.kind === 'live') { const s = seasonAt(nowMs, w.lat); seasonTxt = `${s.emoji} ${s.name} now`; if (view.rec) wxTxt = `${wxLine(view.rec)} · now`; }
+  else if (view && view.plan.kind !== 'none') { const s = seasonAt(w.time, w.lat); seasonTxt = `${s.emoji} ${s.name} on arrival`; if (view.rec) wxTxt = `${wxLine(view.rec)} · historical estimate`; }
+  setChip('#seasonChip', seasonTxt); setChip('#weatherChip', wxTxt);
+
+  const s = core.statsAt(model.tl.events, T);
+  setChip('#discChip', mode === 'dark' ? `${plural(s.places, 'place', 'places')} · ${plural(s.countries, 'country', 'countries')} reached` : '');
+  setText('#stats', `${plural(s.places, 'place', 'places')} · ${plural(s.countries, 'country', 'countries')} · ${plural(s.chaptersCompleted, 'chapter', 'chapters')} completed · ≈ ${num(s.km)} km between places (straight-line estimate)`);
+
+  ui.pinEls.forEach((el, i) => { el.classList.toggle('reached', isReached(i)); el.classList.toggle('active', i === st.idx && !st.travel); });
   if (st.idx !== ui.lastIdx) {
     ui.lastIdx = st.idx;
-    $('#live').textContent = `${info.label}: ${w.place}${w.country ? ', ' + w.country : ''}, ${w.isNow ? 'today' : fmtDate(w.time)}.`;
+    $('#live').textContent = `${info.label}: ${core.placeLabel(w.wp)}${w.wp.startDate ? `, ${core.formatPartialDate(w.wp.startDate)}` : ''}.`;
+    markActiveInList();
   }
-  if (mode === 'dark' && !tween) {                 // Discovery: only the active waypoint has a card; unvisited ones have nothing
+  if (mode === 'dark' && !tween) {                 // Discovery: only the active place has a card; unreached ones have nothing
     if (ui.sheet !== null && ui.sheet !== st.idx) closeSheet();
-    if (ui.hover !== null && wps[ui.hover].t > T) hideTooltip();
+    if (ui.hover !== null && !isReached(ui.hover)) hideTooltip();
   }
   if (ui.sheet !== null) fillDetails($('#sheetBody'), ui.sheet);
   if (ui.hover !== null || ui.pinned !== null) fillDetails($('#tooltip'), ui.pinned ?? ui.hover);
@@ -1323,28 +1438,25 @@ function renderUI() {
 const cardAllowed = (i) => mode !== 'dark' || i === st.idx;
 
 function detailsHTML(i) {
-  const w = model.wps[i], info = stageInfo(w.stage), born = model.wps[0].stage === 'birth';
-  const showWx = cardAllowed(i), wx = showWx ? weatherOf(w) : null, season = seasonAt(w.time, w.lat);
-  const dates = w.isNow ? 'Today' : `${fmtDate(w.time)} → ${w.end >= model.t1 ? 'Present' : fmtDate(w.end)}`;
-  const dur = w.isNow ? 'Present day' : humanDuration(w.dur);
-  const ageTxt = born ? (i === 0 ? 'Newborn' : `${humanDuration(w.time - model.t0)} old on arrival`) : `Year ${ageAt(w.time).years + 1} of the journey`;
-  let chip = '';
-  if (showWx && !wx) chip = '<span class="chip">… loading weather</span>';
-  else if (wx) {
-    const d = describeWeather(wx), range = typeof wx.tmax === 'number' && typeof wx.tmin === 'number' ? ` · ↑${Math.round(wx.tmax)}° ↓${Math.round(wx.tmin)}°` : '';
-    chip = `<span class="chip">${d.emoji} ${d.temp} · ${esc(d.label)}${range}</span> <span style="color:var(--muted);font-size:11.5px">${wx.kind === 'live' ? 'right now' : 'on arrival day'}${wx.simulated ? ' (simulated)' : ''}</span>`;
-  }
+  const w = model.wps[i], wp = w.wp, info = stageInfo(w.stage);
+  const arrived = wp.startDate ? core.formatPartialDate(wp.startDate) : 'Date not recorded';
+  const left = wp.endDate ? core.formatPartialDate(wp.endDate) : wp.isCurrent ? 'Still here' : '';
+  const age = wp.startDate ? core.ageAt(model.birth, w.time) : null;
+  const rows = [['Arrived', esc(arrived)]];
+  if (left) rows.push([wp.isCurrent ? 'Now' : 'Left', esc(left)]);
+  if (age) rows.push(['Age', w.type === 'birthplace' && age.years === 0 ? 'Newborn' : `${age.approx ? 'About ' : ''}${age.years} on arrival`]);
+  if (w.dur !== null && w.dur > DAY && (wp.endDatePrecision === 'day' && w.prec === 'day' || w.dur > 60 * DAY)) rows.push(['Stay', `${wp.endDatePrecision === 'day' && w.prec === 'day' ? '' : 'about '}${humanDuration(w.dur)}`]);
+  const view = cardAllowed(i) ? weatherView(w, false) : null;
+  if (view && view.plan.kind !== 'none' && view.plan.kind !== 'live') { const s = seasonAt(w.time, w.lat); rows.push(['Season', `${s.emoji} ${s.name}`]); }
+  let wx = '';
+  if (view && view.rec) wx = `<p class="wp-wx">${esc(wxLine(view.rec))}${view.rec.date ? ` · ${esc(core.formatPartialDate(view.rec.date))}` : ''}<small>${esc(view.rec.provenance || (view.rec.kind === 'live' ? 'Current conditions' : 'Historical estimate'))}</small></p>`;
+  else if (view && view.pending) wx = '<p class="wp-wx"><small>Looking up the weather…</small></p>';
   return `
-    <div class="flex items-center gap-2 mb-1 flex-wrap"><span class="chip"><span class="dot" style="--c:${info.color}"></span>${esc(info.label)}</span><span class="chip">${w.visit ? '◆ Short visit' : '● Home'}</span></div>
-    <h3 class="wp-title">${esc(w.place)}${w.country ? ` <span style="color:var(--muted);font-family:var(--sans);font-size:13px">${flag(w.country)} ${esc(w.country)}</span>` : ''}</h3>
-    <dl class="wp-meta">
-      <dt>Dates</dt><dd>${dates}</dd>
-      <dt>Age</dt><dd>${ageTxt}</dd>
-      <dt>Stay</dt><dd>${dur}</dd>
-      <dt>Season</dt><dd>${season.emoji} ${season.name}</dd>
-    </dl>
-    ${w.note ? `<p class="wp-note">“${esc(w.note)}”</p>` : ''}
-    ${chip ? `<div class="mt-2 flex items-center gap-2 flex-wrap">${chip}</div>` : ''}`;
+    <div class="row wrap"><span class="chip"><span class="dot" style="--c:${info.color}"></span>${esc(info.label)}</span><span class="chip">${w.visit ? '◆' : '●'} ${esc(TYPE_LABEL[w.type])}</span></div>
+    <h3 class="wp-title">${esc(w.place)}</h3>
+    <p class="wp-sub">${esc([w.region, w.country].filter(Boolean).join(', '))} ${flag(w.cc)}</p>
+    <dl class="wp-meta">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+    ${w.note ? `<p class="wp-note">“${esc(w.note)}”</p>` : ''}${wx}`;
 }
 function fillDetails(el, i) {
   if (!model.wps[i]) return;
@@ -1391,7 +1503,7 @@ function openDetails(i) { hideTooltip(); openSheet(i); }
 function pickWaypoint(x, y, radius) {
   let best = null, bestD = radius * radius;
   model.wps.forEach((w, i) => {
-    if (mode === 'dark' && w.t > T) return;          // Discovery: nothing is clickable until it has been visited
+    if (mode === 'dark' && !isReached(i)) return;    // Discovery: nothing is clickable until it has been reached
     const s = screenOf(i, _scr); if (!s) return;
     const d = (s.x - x) ** 2 + (s.y - y) ** 2;
     if (d < bestD) { bestD = d; best = i; }
@@ -1400,7 +1512,7 @@ function pickWaypoint(x, y, radius) {
 }
 function buildLegend() {
   const stages = [...new Set(model.wps.map((w) => w.stage))];
-  $('#legend').innerHTML = `<span><i style="--c:${STAGES.birth.color}"></i>Home</span><span><i class="dia" style="--c:${VISIT_COLOR}"></i>Short visit</span>`
+  $('#legend').innerHTML = !model.wps.length ? '' : `<span><i style="--c:${STAGES.birth.color}"></i>Lived here</span><span><i class="dia" style="--c:${VISIT_COLOR}"></i>Visit</span>`
     + (chapters ? stages.map((s) => `<span><i style="--c:${stageInfo(s).color}"></i>${esc(stageInfo(s).label)}</span>`).join('') : '');
 }
 
@@ -1414,23 +1526,20 @@ function buildTimeline() {
     bands.appendChild(band);
     const pin = document.createElement('button');
     pin.className = w.visit ? 'pin visit' : 'pin'; pin.type = 'button'; pin.style.cssText = `left:${w.t * 100}%;--c:${info.color}`;
-    pin.setAttribute('aria-label', `${w.place}${w.country ? ', ' + w.country : ''} — ${info.label}, ${w.isNow ? 'today' : fmtDate(w.time)}. Jump here and show details.`);
+    pin.setAttribute('aria-label', `${core.placeLabel(w.wp)} — ${TYPE_LABEL[w.type]}, ${w.wp.startDate ? core.formatPartialDate(w.wp.startDate) : 'now'}. Jump here and show details.`);
     pin.addEventListener('click', () => { tweenTo(w.t); openDetails(i); });
     pins.appendChild(pin); ui.pinEls.push(pin);
   });
-  if (wps.length) {
-    const y0 = new Date(model.t0).getUTCFullYear(), y1 = new Date(model.t1).getUTCFullYear();
-    const maxLabels = Math.max(2, Math.floor(ticks.getBoundingClientRect().width / 46));
-    const step = [1, 2, 5, 10, 20, 25, 50, 100].find((s) => (y1 - y0) / s <= maxLabels) || 100;
-    for (let y = Math.ceil(y0 / step) * step; y <= y1; y += step) {
-      const t = (Date.UTC(y, 0, 1) - model.t0) / model.span;
-      if (t < 0.012 || t > 0.988) continue;
-      const el = document.createElement('span'); el.style.left = `${t * 100}%`; el.textContent = y; ticks.appendChild(el);
+  if (wps.length) {      // year labels sit where the event-paced timeline puts them; skip any that would collide
+    const y0 = new Date(model.t0).getUTCFullYear(), y1 = new Date(model.t1).getUTCFullYear(), width = ticks.getBoundingClientRect().width || 600;
+    let last = -1;
+    for (let y = y0 + 1; y <= y1; y++) {
+      const t = model.tl.tOfTime(Date.UTC(y, 0, 1));
+      if (t < 0.03 || t > 0.985 || (t - last) * width < 44) continue;
+      const el = document.createElement('span'); el.style.left = `${t * 100}%`; el.textContent = y; ticks.appendChild(el); last = t;
     }
   }
   buildLegend();
-  const s = model.stats;
-  $('#stats').innerHTML = `<b>${s.places}</b> place${s.places === 1 ? '' : 's'} · <b>${s.countries}</b> countr${s.countries === 1 ? 'y' : 'ies'} · <b>${num(s.km)}</b> km travelled`;
 }
 
 function syncPlayButton() {
@@ -1438,112 +1547,438 @@ function syncPlayButton() {
   $('#play').setAttribute('aria-label', playing ? 'Pause' : 'Play');
 }
 
-/** Rebuild model + scene + timeline after any data change, keeping the scrubber on the same date. */
+/** Rebuild model + scene + timeline after any data change, keeping the scrubber on the same calendar moment. */
 function rebuildAll() {
-  const keepMs = model.wps.length ? model.t0 + T * model.span : null;
+  const keepMs = model.wps.length ? model.tl.timeOfT(T) : null;
   buildModel(); rebuildScene(); buildTimeline();
-  T = keepMs === null ? 0 : clamp((keepMs - model.t0) / model.span);
-  lastAge = null; fired.clear(); mask.sig = ''; ui.lastIdx = -1; ui.cache = {}; hideTooltip(); closeSheet();
-  $('#personName').textContent = journey.name;
-  document.title = `The Journey — ${journey.name}`;
-  ui.dirty = true; resize();
+  T = keepMs === null ? 0 : clamp(model.tl.tOfTime(keepMs));
+  mask.sig = null; ui.lastIdx = -1;      // null, not '': an empty journey's signature is '' and must still clear the old light ui.cache = {}; hideTooltip(); closeSheet();
+  $('#personName').textContent = journey.displayName || ' ';
+  document.title = journey.displayName ? `The Journey — ${journey.displayName}` : 'The Journey';
+  ui.dirty = true; resize(); renderGate();
 }
 
-/* ------------------------------------------------------------------ 9. editor */
-const editor = $('#editor'), edStatus = $('#edStatus');
-let editing = null;      // index into journey.waypoints, or null when adding
-const status = (msg, err = false) => { edStatus.textContent = msg; edStatus.classList.toggle('err', err); };
+let toastTimer = 0;
+function toast(msg, err = false) {
+  const el = $('#toast'); el.textContent = msg; el.classList.toggle('err', err); el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), err ? 7000 : 4200);
+}
+
+/** Centre card: load failure, private journey, or the empty state. One thing at a time. */
+function renderGate() {
+  const g = $('#gate'), kind = api.loadError ? 'error' : api.locked ? 'locked' : (!journey.waypoints.length && !editorOpen()) ? 'empty' : null;
+  g.hidden = !kind; if (!kind) return;
+  const act = $('#gateAction');
+  $('#gateForm').hidden = !(kind === 'locked' && api.authConfigured); act.hidden = kind === 'locked'; $('#gateStatus').hidden = true;
+  if (kind === 'error') { $('#gateTitle').textContent = 'This journey couldn’t be loaded'; $('#gateText').textContent = `${api.loadError} Your saved journey has not been touched.`; act.textContent = 'Try again'; act.dataset.do = 'reload'; }
+  else if (kind === 'locked') { $('#gateTitle').textContent = 'This journey is private'; $('#gateText').textContent = api.authConfigured ? 'Its owner hasn’t shared it. If it’s yours, enter your passphrase.' : 'Its owner hasn’t shared it.'; }
+  else { $('#gateTitle').textContent = 'Every journey begins somewhere.'; $('#gateText').textContent = 'Add your birthplace to illuminate your first corner of the world.'; act.textContent = 'Add first place'; act.dataset.do = 'first'; }
+}
+
+/* ------------------------------------------------------------------ 9. editor — "Your Journey" list + "Place details" form */
+const jp = $('#journeyPanel'), dp = $('#detailPanel'), fPlace = $('#fPlace');
+const layout = { pl: 0, pr: 0 };
+function editorOpen() { return jp.classList.contains('open'); }
+function detailOpen() { return dp.classList.contains('open'); }
+function setPanel(el, open) { el.classList.toggle('open', open); el.toggleAttribute('inert', !open); el.setAttribute('aria-hidden', String(!open)); }
+function syncLayout() {
+  const phone = isPhone();
+  layout.pl = editorOpen() && !phone ? jp.offsetWidth + 24 : 0;
+  layout.pr = detailOpen() && !phone ? dp.offsetWidth + 24 : 0;
+  document.documentElement.style.setProperty('--pl', `${layout.pl}px`);
+  document.documentElement.style.setProperty('--pr', `${layout.pr}px`);
+  document.body.classList.toggle('editing', editorOpen()); document.body.classList.toggle('detailing', detailOpen());
+  resize(); ui.dirty = true; renderGate();
+}
+function setSaveState(state) {
+  const el = $('#saveState');
+  const map = { saving: ['Saving…', ''], cloud: ['Saved ✓', 'ok'], device: ['On this device only', 'local'], error: ['Not saved', 'err'], idle: [api.mode === 'demo' ? 'Demo · this device only' : api.canEdit ? 'Cloud' : 'View only', api.mode === 'demo' ? 'local' : ''] };
+  const [text, cls] = map[state] || map.idle;
+  el.textContent = text; el.className = `pill ${cls}`;
+}
+const shortLabel = (wp) => [wp.placeName, (wp.region || '').split(', ').pop() || wp.country].filter(Boolean).join(', ');
+const dateSpan = (wp) => !wp.startDate ? 'Now' : core.formatPartialDate(wp.startDate) + (wp.endDate ? ` – ${core.formatPartialDate(wp.endDate)}` : wp.isCurrent ? ' – present' : '');
 
 function openEditor() {
-  editor.classList.add('open'); editor.removeAttribute('inert'); editor.setAttribute('aria-hidden', 'false');
+  setPanel(jp, true);
+  $('#edName').value = journey.displayName;
+  renderEditorList(); renderNotice(); setSaveState('idle'); closeSheet(); hideTooltip(); syncLayout();
   $('#editBtn').setAttribute('aria-expanded', 'true');
-  $('#edName').value = journey.name; $('#edTokenRow').hidden = !api.editProtected; $('#edReset').hidden = !(api.mode === 'local' && store.get(LS_DRAFT));
-  $('#edToken').value = sessionStorage.getItem('journey:token') || '';
-  renderEditorList(); resetForm(); closeSheet();
   $('#editorClose').focus({ preventScroll: true });
 }
 function closeEditor() {
-  editor.classList.remove('open'); editor.setAttribute('inert', ''); editor.setAttribute('aria-hidden', 'true');
+  if (detailOpen()) closeDetail(false);
+  endPick(); setPanel(jp, false); syncLayout();
   $('#editBtn').setAttribute('aria-expanded', 'false'); $('#editBtn').focus({ preventScroll: true });
 }
+
 function renderEditorList() {
-  const items = journey.waypoints.map((w, i) => ({ w, i, time: wpTime(w) })).sort((a, b) => (a.time - b.time) || (isNow(a.w) - isNow(b.w)) || (a.i - b.i));
-  $('#edList').innerHTML = items.map(({ w, i }) => `
-    <li>
-      <span class="dot" style="--c:${stageInfo(w.stage).color}"></span>
-      <span class="what"><span>${esc(w.place)}${w.country ? ', ' + esc(w.country) : ''}</span>
-        <small>${isNow(w) ? 'Now' : fmtDate(wpTime(w))} · ${esc(stageInfo(w.stage).label)}${hasCoords(w) ? '' : ' · ⚠ not located'}</small></span>
-      <button class="btn" type="button" data-edit="${i}" aria-label="Edit ${esc(w.place)}">Edit</button>
-      <button class="btn btn-danger" type="button" data-del="${i}" aria-label="Delete ${esc(w.place)}">Delete</button>
-    </li>`).join('') || '<li><span class="what">No waypoints yet — add the first one below.</span></li>';
+  const can = canEditNow(), ev = model.tl.events, dis = can ? '' : ' disabled';
+  let html = '', chapter = null;
+  ev.forEach((e, i) => {
+    const wp = e.wp, info = stageInfo(wp.chapter);
+    if (wp.chapter !== chapter) { chapter = wp.chapter; html += `<li class="grp"><span class="dot" style="--c:${info.color}"></span>${esc(info.label)}</li>`; }
+    const tieUp = i > 0 && ev[i - 1].time === e.time, tieDown = i < ev.length - 1 && ev[i + 1].time === e.time;
+    html += `<li class="item" data-id="${wp.id}">
+      <button class="go" type="button" data-go="${wp.id}" aria-label="Show ${esc(wp.placeName)} on the globe">
+        <span class="ico" style="--c:${info.color}">${TYPE_ICON[wp.stayType]}</span>
+        <span class="what"><b>${esc(wp.placeName)}</b><small>${esc(dateSpan(wp))} · ${TYPE_LABEL[wp.stayType]}${wp.country ? ` · ${esc(wp.country)}` : ''}</small></span>
+      </button>
+      ${tieUp ? `<button class="btn btn-sm icon-btn" type="button" data-up="${wp.id}" aria-label="Move ${esc(wp.placeName)} earlier among places with the same date"${dis}>↑</button>` : ''}
+      ${tieDown ? `<button class="btn btn-sm icon-btn" type="button" data-down="${wp.id}" aria-label="Move ${esc(wp.placeName)} later among places with the same date"${dis}>↓</button>` : ''}
+      <button class="btn btn-sm" type="button" data-edit="${wp.id}" aria-label="Edit ${esc(wp.placeName)}"${dis}>Edit</button>
+      <button class="btn btn-sm btn-danger" type="button" data-del="${wp.id}" aria-label="Delete ${esc(wp.placeName)}"${dis}>Delete</button>
+    </li>`;
+  });
+  if (model.tl.unlocated.length) {
+    html += '<li class="grp">Needs a location</li>' + model.tl.unlocated.map((wp) => `<li class="item" data-id="${wp.id}">
+      <span class="go"><span class="ico">${TYPE_ICON[wp.stayType]}</span><span class="what"><b>${esc(wp.placeName)}</b><small class="warn">Not on the globe yet — its location was never verified</small></span></span>
+      <button class="btn btn-sm" type="button" data-edit="${wp.id}"${dis}>Locate</button>
+      <button class="btn btn-sm btn-danger" type="button" data-del="${wp.id}" aria-label="Delete ${esc(wp.placeName)}"${dis}>Delete</button></li>`).join('');
+  }
+  $('#edList').innerHTML = html || '<li class="empty">No places yet. Start with where you were born.</li>';
+  $('#addPlace').disabled = !can; $('#edName').disabled = !can; $('#importBtn').disabled = !can;
+  $('#shareRow').hidden = !(api.mode === 'cloud' && api.canEdit); $('#shareToggle').checked = journey.visibility === 'public';
+  $('#signOut').hidden = !(api.mode === 'cloud' && api.canEdit);
+  markActiveInList();
 }
-function resetForm() {
-  editing = null; $('#edForm').reset(); $('#fDate').disabled = false;
-  $('#edFormTitle').textContent = 'Add a waypoint'; $('#fSubmit').textContent = 'Add waypoint'; $('#fCancel').hidden = true;
-  $('#fStage').value = 'adult';
+function markActiveInList() {
+  if (!editorOpen()) return;
+  const id = model.wps.length ? model.wps[st.idx]?.id : null;
+  document.querySelectorAll('#edList .item').forEach((li) => { const on = li.dataset.id === id; li.classList.toggle('active', on); if (on) li.setAttribute('aria-current', 'true'); else li.removeAttribute('aria-current'); });
 }
-function startEdit(i) {
-  const w = journey.waypoints[i]; if (!w) return;
-  editing = i;
-  $('#fPlace').value = w.place; $('#fCountry').value = w.country; $('#fNote').value = w.note;
-  $('#fNow').checked = isNow(w); $('#fDate').disabled = isNow(w);
-  $('#fDate').value = isNow(w) ? '' : `${String(w.year).padStart(4, '0')}-${String(w.month).padStart(2, '0')}-${String(w.day).padStart(2, '0')}`;
-  if (![...$('#fStage').options].some((o) => o.value === w.stage)) $('#fStage').add(new Option(stageInfo(w.stage).label, w.stage));
-  $('#fStage').value = w.stage;
-  $('#fKind').value = w.kind || '';
-  $('#fLat').value = hasCoords(w) ? w.lat : ''; $('#fLon').value = hasCoords(w) ? w.lon : '';
-  $('#edFormTitle').textContent = `Edit ${w.place}`; $('#fSubmit').textContent = 'Update waypoint'; $('#fCancel').hidden = false;
-  $('#fPlace').focus();
+function renderNotice() {
+  const out = [];
+  if (api.loadError) out.push(`<div class="notice warn">${esc(api.loadError)}</div>`);
+  if (api.skipped) out.push(`<div class="notice warn">${plural(api.skipped, 'place', 'places')} in the saved journey could not be read and ${api.skipped === 1 ? 'is' : 'are'} hidden. Editing is locked so nothing is overwritten — export a backup first.</div>`);
+  if (api.conflict) out.push('<div class="notice warn">This journey was changed somewhere else. <div class="row"><button class="btn btn-sm btn-gold" type="button" data-act="latest">Load the latest version</button></div></div>');
+  if (api.mode === 'cloud' && !api.canEdit && !api.loadError && !api.locked) {
+    out.push(api.authConfigured
+      ? `<form class="notice" id="unlockForm"><label for="unlockPass">Enter your passphrase to make changes.</label><div class="row"><input class="inp grow" id="unlockPass" type="password" autocomplete="current-password" style="margin:0" aria-label="Edit passphrase"><button class="btn btn-sm btn-gold" type="submit">Unlock</button></div><p class="status err" id="unlockStatus" role="alert" style="margin:6px 0 0;min-height:0"></p></form>`
+      : '<div class="notice warn">Editing is switched off for this deployment. Set <code>JOURNEY_EDIT_TOKEN</code> in the Vercel project and redeploy to become the owner.</div>');
+  }
+  if (api.mode === 'demo' && !api.loadError) out.push(`<div class="notice warn"><b>Demo mode.</b> No cloud storage is connected, so changes are kept in this browser only and are not backed up. Use “Export backup” to keep a copy.${store.get(LS_DRAFT) || store.get(LS_DRAFT_V1) ? '<div class="row"><button class="btn btn-sm" type="button" data-act="discard">Discard this device’s copy</button></div>' : ''}</div>`);
+  if (api.sample && canEditNow()) out.push('<div class="notice">You’re looking at a sample journey. <div class="row"><button class="btn btn-sm btn-gold" type="button" data-act="fresh">Start my own</button></div></div>');
+  $('#edNotice').innerHTML = out.join('');
+  renderEditorList();
 }
 
-/** Every add / edit / delete: locate → redraw → save via POST /api/journey. */
-async function commitChange(verb) {
-  renderEditorList(); status('Locating and saving…');
-  const geo = await resolveCoords();
-  renderEditorList(); rebuildAll();
-  const res = await saveJourney();
-  $('#edReset').hidden = !(api.mode === 'local' && store.get(LS_DRAFT));
-  const miss = geo.failed.length ? ` Couldn’t locate ${geo.failed.map((p) => `“${p}”`).join(', ')} — add coordinates by hand.` : '';
-  if (res.error) status(`${verb}, but not saved: ${res.error}${miss}`, true);
-  else status(`${verb}. ${res.persisted ? 'Saved ✓' : 'Saved in this browser (Local Data Mode).'}${miss}`, Boolean(miss));
-  loadAllWeather();
+async function unlock(pass, statusEl) {
+  const r = await apiCall('/api/journey?resource=session', { method: 'POST', body: JSON.stringify({ passphrase: pass }) });
+  if (!r.ok) { statusEl.hidden = false; statusEl.textContent = r.data.error || (r.status === 0 ? 'Could not reach the server.' : `Could not unlock (${r.status}).`); return false; }
+  api.canEdit = true;
+  if (api.locked) { await loadJourney(); rebuildAll(); loadAllWeather(); }
+  renderNotice(); setSaveState('idle'); renderGate();
+  toast('Editing unlocked on this device.');
+  return true;
+}
+
+/* ---- place details form */
+const form = { id: null, loc: null, saving: false, manualSource: 'manual', chapterTouched: false, returnFocus: null };
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const status = (msg, err = false) => { const el = $('#edStatus'); el.textContent = msg; el.classList.toggle('err', err); };
+function fillDays(ySel, mSel, dSel) {
+  const y = +$(ySel).value, m = +$(mSel).value, keep = $(dSel).value;
+  const n = m ? new Date(Date.UTC(/^\d{4}$/.test($(ySel).value) ? y : 2000, m, 0)).getUTCDate() : 0;
+  $(dSel).innerHTML = '<option value="">Day</option>' + Array.from({ length: n }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
+  $(dSel).value = +keep <= n ? keep : '';
+}
+function syncDateInputs() {
+  const cur = $('#fCurrent').checked;
+  $('#fD').disabled = !$('#fM').value; if (!$('#fM').value) $('#fD').value = '';
+  $('#fEY').disabled = cur; $('#fEM').disabled = cur || !$('#fEY').value; $('#fED').disabled = cur || !$('#fEM').value;
+  if (cur) { $('#fEY').value = ''; $('#fEM').value = ''; $('#fED').value = ''; }
+  fillDays('#fY', '#fM', '#fD'); fillDays('#fEY', '#fEM', '#fED');
+}
+function setDateInputs(prefix, str) {
+  const p = core.parsePartialDate(str);
+  $(`#f${prefix}Y`).value = p ? String(p.y) : ''; $(`#f${prefix}M`).value = p?.m ? String(p.m) : '';
+  fillDays(`#f${prefix}Y`, `#f${prefix}M`, `#f${prefix}D`); $(`#f${prefix}D`).value = p?.d ? String(p.d) : '';
+}
+/** Read year/month/day inputs → { ok, value } where value is 'YYYY' | 'YYYY-MM' | 'YYYY-MM-DD' | null. Never fills in parts the user left blank. */
+function readDate(prefix, required) {
+  const y = $(`#f${prefix}Y`).value.trim(), m = $(`#f${prefix}M`).value, d = $(`#f${prefix}D`).value;
+  if (!y) return required ? { ok: false, msg: 'Enter the year you arrived — a year on its own is enough.' } : { ok: true, value: null };
+  if (!/^\d{4}$/.test(y)) return { ok: false, msg: 'Enter the year as four digits, for example 1996.' };
+  const value = core.makePartialDate(y, m || null, m ? d || null : null);
+  return value ? { ok: true, value } : { ok: false, msg: 'That date doesn’t exist in the calendar.' };
+}
+function fillChapters(selected) {
+  const have = [...new Set([...core.DEFAULT_CHAPTERS, ...journey.waypoints.map((w) => w.chapter), ...(selected ? [selected] : [])])];
+  $('#fChapter').innerHTML = have.map((c) => `<option value="${esc(c)}">${esc(stageInfo(c).label)}</option>`).join('') + '<option value="__custom">Add your own…</option>';
+  $('#fChapter').value = selected || 'personal'; $('#fChapterCustomRow').hidden = true; $('#fChapterCustom').value = '';
+}
+function showLoc(which) { $('#locSearch').hidden = which !== 'search'; $('#locManual').hidden = which !== 'manual'; $('#locCard').hidden = which !== 'card'; }
+/** The confirmed location. Coordinates saved with a place come from here and nowhere else — never from the search box text. */
+function setLoc(loc, fly = true) {
+  form.loc = loc;
+  if (!loc) { clearPreview(); return; }
+  $('#lcName').textContent = loc.name;
+  $('#lcRegion').textContent = [loc.region, loc.country].filter(Boolean).join(', ') || 'Region not recorded';
+  $('#lcCoords').textContent = fmtCoords(loc.latitude, loc.longitude);
+  $('#lcKind').textContent = core.KIND_LABEL[loc.kind] || 'Place'; $('#lcSource').textContent = SOURCE_LABEL[loc.source] || '';
+  $('#lcSource').className = `pill ${loc.source === 'photon' ? 'ok' : loc.source === 'legacy' ? '' : 'local'}`;
+  showLoc('card'); status(''); setPreview(loc.latitude, loc.longitude, fly);
+}
+
+function openDetail(wp, opener) {
+  if (!canEditNow()) return;
+  form.id = wp ? wp.id : null; form.saving = false; form.chapterTouched = Boolean(wp); form.manualSource = 'manual'; form.returnFocus = opener || $('#addPlace');
+  $('#edForm').reset(); resetSearch(); status('');
+  $('#fSubmit').textContent = 'Save place'; $('#fSubmit').disabled = false;
+  $('#edFormTitle').textContent = wp ? `Edit ${wp.placeName}` : 'Add a place';
+  const type = wp ? wp.stayType : journey.waypoints.length ? 'home' : 'birthplace';
+  $('#fType').value = type; fillChapters(wp ? wp.chapter : TYPE_CHAPTER[type]);
+  setDateInputs('', wp ? wp.startDate : null); setDateInputs('E', wp ? wp.endDate : null);
+  $('#fCurrent').checked = Boolean(wp && wp.isCurrent); $('#fNote').value = wp ? wp.note : '';
+  ['mName', 'mCountry', 'mLat', 'mLon'].forEach((id) => { $(`#${id}`).value = ''; });
+  syncDateInputs();
+  setPanel(dp, true); syncLayout();
+  if (wp && core.hasLocation(wp)) {
+    setLoc({ placeId: wp.placeId, name: wp.placeName, region: wp.region, country: wp.country, countryCode: wp.countryCode, latitude: wp.latitude, longitude: wp.longitude, kind: wp.locationPrecision, source: wp.geocodeSource });
+    $('#fY').focus({ preventScroll: true });
+  } else {
+    setLoc(null); showLoc('search'); fPlace.value = wp ? wp.placeName : ''; fPlace.focus({ preventScroll: true });
+    if (wp) onSearchInput();
+  }
+  $('#detailBody').scrollTop = 0;
+}
+function closeDetail(restoreFocus = true) {
+  resetSearch(); endPick(); clearPreview(); form.loc = null; form.id = null;
+  setPanel(dp, false); syncLayout();
+  if (restoreFocus) (form.returnFocus?.isConnected ? form.returnFocus : $('#addPlace')).focus({ preventScroll: true });
+}
+
+/* ---- place search: an ARIA combobox over /api/geocode (Photon). Debounced, cancellable, and immune to out-of-order replies. */
+const search = { timer: 0, ctl: null, seq: 0, results: [], active: -1, q: '' };
+const minChars = (q) => (/[^\u0000-ɏ]/.test(q) ? 2 : 3);        // CJK and other dense scripts say a lot in two characters
+function setLocState(msg, kind = '') {
+  const el = $('#locState'); el.className = kind === 'err' ? 'err' : '';
+  el.innerHTML = (kind === 'busy' ? '<span class="spin" aria-hidden="true"></span>' : '') + esc(msg) + (kind === 'err' ? ' <button class="btn btn-sm" type="button" id="locRetry" style="margin-left:6px">Try again</button>' : '');
+}
+function renderResults() {
+  const ul = $('#locList'), open = search.results.length > 0;
+  ul.innerHTML = search.results.map((p, i) => `<li role="option" id="loc-opt-${i}" data-i="${i}" aria-selected="${i === search.active}">
+      <span class="nm"><b>${esc(p.name)}</b><small>${esc([p.region, p.country].filter(Boolean).join(', ') || '—')}</small></span><span class="kind">${esc(core.KIND_LABEL[p.kind] || 'Place')}</span></li>`).join('');
+  ul.hidden = !open; fPlace.setAttribute('aria-expanded', String(open));
+  if (search.active >= 0) fPlace.setAttribute('aria-activedescendant', `loc-opt-${search.active}`); else fPlace.removeAttribute('aria-activedescendant');
+}
+function resetSearch() {
+  clearTimeout(search.timer); search.ctl?.abort(); search.seq++; search.results = []; search.active = -1; search.q = '';
+  fPlace.value = ''; renderResults(); setLocState('');
+}
+function onSearchInput() {
+  const q = fPlace.value.replace(/\s+/g, ' ').trim();
+  clearTimeout(search.timer); search.ctl?.abort(); const seq = ++search.seq;      // anything still in flight is now stale
+  search.results = []; search.active = -1; search.q = q; renderResults();
+  if (q.length < minChars(q)) { setLocState(q ? `Keep typing — at least ${minChars(q)} characters.` : ''); return; }
+  setLocState('Searching…', 'busy');
+  search.timer = setTimeout(() => runSearch(q, seq, 0), CONFIG.searchDebounce);
+}
+async function runSearch(q, seq, attempt) {
+  const ctl = new AbortController(); search.ctl = ctl;
+  const r = await apiCall(`/api/geocode?q=${encodeURIComponent(q)}`, { signal: ctl.signal }, 9000);
+  if (seq !== search.seq) return;                                                  // a newer keystroke owns the list
+  if (r.ok && Array.isArray(r.data.results)) {
+    search.results = r.data.results.slice(0, 6); search.active = -1; renderResults();
+    setLocState(search.results.length ? `${plural(search.results.length, 'match', 'matches')}. Pick the right one — use ↑ ↓ and Enter, or tap.`
+      : `No place found for “${q}”. Check the spelling, or use “Choose on globe” / “Enter coordinates” below.`);
+    return;
+  }
+  if (r.status === 429 && attempt < 2) {
+    setLocState('Search is busy — trying again…', 'busy');
+    search.timer = setTimeout(() => runSearch(q, seq, attempt + 1), Math.min(5, r.retryAfter || 1) * 1000 + 150); return;
+  }
+  if (r.status === 401) setLocState('Unlock editing in “Your Journey” to search for places.', 'err');
+  else if (!r.json && r.status !== 0) setLocState('Place search isn’t available on this deployment. Use “Choose on globe” or “Enter coordinates”.');
+  else setLocState(`${r.data.error || 'Place search couldn’t be reached.'} You can also choose on the globe or enter coordinates.`, 'err');
+}
+function chooseResult(i) {
+  const p = search.results[i]; if (!p) return;
+  resetSearch(); setLoc({ ...p, source: 'photon' });
+  $('#fY').focus({ preventScroll: true });
+}
+
+/* ---- manual location: typed coordinates or a point chosen on the globe. Always labelled as manual, never as verified. */
+const parseCoord = (s) => { const v = String(s).trim().replace(/[−–]/g, '-').replace(',', '.'); return /^-?\d+(\.\d+)?$/.test(v) ? Number(v) : NaN; };
+function useManual() {
+  const name = $('#mName').value.trim(), lat = parseCoord($('#mLat').value), lon = parseCoord($('#mLon').value);
+  ['mName', 'mLat', 'mLon'].forEach((id) => $(`#${id}`).parentElement.classList.remove('bad'));
+  const bad = (id, msg) => { $(`#${id}`).parentElement.classList.add('bad'); $(`#${id}`).focus(); status(msg, true); };
+  if (!name) return bad('mName', 'Give this place a name.');
+  if (!Number.isFinite(lat) || Math.abs(lat) > 90) return bad('mLat', 'Latitude must be a number between −90 and 90.');
+  if (!Number.isFinite(lon) || Math.abs(lon) > 180) return bad('mLon', 'Longitude must be a number between −180 and 180.');
+  status('');
+  setLoc({ placeId: null, name, region: '', country: $('#mCountry').value.trim(), countryCode: '', latitude: +lat.toFixed(5), longitude: +lon.toFixed(5), kind: 'point', source: form.manualSource });
+  $('#fY').focus({ preventScroll: true });
+}
+function startPick() { picking = true; document.body.classList.add('picking'); $('#pickBar').hidden = false; hideTooltip(); closeSheet(); }
+function endPick() { picking = false; document.body.classList.remove('picking'); $('#pickBar').hidden = true; }
+const _ray = new THREE.Raycaster(), _unit = new THREE.Sphere(new THREE.Vector3(), 1);
+function pickGlobe(x, y) {
+  _ray.setFromCamera(new THREE.Vector2(x / innerWidth * 2 - 1, -(y / innerHeight) * 2 + 1), camera);
+  const hit = _ray.ray.intersectSphere(_unit, new THREE.Vector3());
+  if (!hit) { toast('That click missed the globe — try again.'); return; }
+  const { lat, lon } = vec3ToLatLon(hit);
+  if (!$('#mName').value) $('#mName').value = fPlace.value.trim();
+  $('#mLat').value = lat.toFixed(4); $('#mLon').value = lon.toFixed(4); form.manualSource = 'globe';
+  endPick(); form.loc = null; showLoc('manual'); setPreview(lat, lon, false);
+  status('Point placed. Name it, check the coordinates, then “Use this location”.');
+  $('#mName').focus({ preventScroll: true });
+}
+
+async function submitForm(e) {
+  e.preventDefault();
+  if (form.saving) return;
+  const fail = (msg, el) => { status(msg, true); el?.focus(); };
+  if (!form.loc) return fail('Choose the location first: pick a search result, or set it by hand. Typed text alone can’t be placed on the globe.', $('#locSearch').hidden ? $('#mName') : fPlace);
+  const start = readDate('', true); if (!start.ok) return fail(start.msg, $('#fY'));
+  const current = $('#fCurrent').checked;
+  const end = current ? { ok: true, value: null } : readDate('E', false); if (!end.ok) return fail(`Departure: ${end.msg}`, $('#fEY'));
+  const type = $('#fType').value;
+  const chapter = ($('#fChapter').value === '__custom' ? $('#fChapterCustom').value : $('#fChapter').value).trim().toLowerCase();
+  if (!chapter) return fail('Name the life chapter.', $('#fChapterCustom'));
+  const prev = form.id ? journey.waypoints.find((w) => w.id === form.id) : null;
+  const other = journey.waypoints.find((w) => w.stayType === 'birthplace' && w.id !== form.id);
+  if (type === 'birthplace' && other) return fail(`${other.placeName} is already the birthplace. Change that entry first, or pick another type here.`, $('#fType'));
+  const loc = form.loc, nowIso = new Date().toISOString();
+  const wp = {
+    id: prev ? prev.id : core.newId(), placeId: loc.placeId || null, placeName: loc.name, region: loc.region || '', country: loc.country || '', countryCode: loc.countryCode || '',
+    latitude: loc.latitude, longitude: loc.longitude, geocodeSource: loc.source, locationPrecision: loc.kind || 'unknown',
+    startDate: start.value, endDate: end.value, isCurrent: current, stayType: type, chapter, note: $('#fNote').value.trim(),
+    sortIndex: prev ? prev.sortIndex : journey.waypoints.reduce((m, w) => Math.max(m, w.sortIndex), -1) + 1,
+    createdAt: prev ? prev.createdAt : nowIso, updatedAt: nowIso, ...(prev?.legacy ? { legacy: prev.legacy } : {}),
+  };
+  let clean; try { clean = core.validateWaypoint(wp, { nowMs: Date.now() }); } catch (err) { return fail(err.message, /endDate/.test(err.path) ? $('#fEY') : /startDate/.test(err.path) ? $('#fY') : null); }
+  const next = { ...journey, waypoints: prev ? journey.waypoints.map((w) => (w.id === prev.id ? clean : w)) : [...journey.waypoints, clean] };
+  if (type === 'birthplace') { next.birthDate = clean.startDate; next.birthDatePrecision = clean.startDatePrecision; }   // age follows the birthplace date, at its precision
+
+  form.saving = true; $('#fSubmit').disabled = true; $('#fSubmit').textContent = 'Saving…'; status('Saving…');
+  const res = await commit(next, { toastMsg: `${shortLabel(clean)} ${prev ? 'updated' : 'added to your journey'}.` });
+  form.saving = false; $('#fSubmit').disabled = false;
+  if (!res.ok) { $('#fSubmit').textContent = 'Retry save'; status(res.error, true); return; }      // the form stays exactly as it was
+  closeDetail(false);
+  if (isPhone()) closeEditor(); else document.querySelector(`#edList [data-edit="${clean.id}"]`)?.focus({ preventScroll: true });
+  focusWaypoint(clean.id);
+}
+/** After a confirmed save: move the timeline to the place, turn the globe to it and let its marker pulse. */
+function focusWaypoint(id) {
+  const i = model.wps.findIndex((w) => w.id === id); if (i < 0) return;
+  highlight = { id, t0: performance.now() + 900 };
+  tweenTo(model.wps[i].t, 1300);
+  $('#live').textContent = `${core.placeLabel(model.wps[i].wp)} is now on the globe.`;
+}
+
+function moveTie(id, dir) {
+  const ev = model.tl.events, i = ev.findIndex((e) => e.wp.id === id), j = i + dir;
+  if (i < 0 || !ev[j] || ev[j].time !== ev[i].time) return;
+  const ids = ev.filter((e) => e.time === ev[i].time).map((e) => e.wp.id), a = ids.indexOf(id), b = ids.indexOf(ev[j].wp.id);
+  [ids[a], ids[b]] = [ids[b], ids[a]];
+  commit({ ...journey, waypoints: journey.waypoints.map((w) => (ids.includes(w.id) ? { ...w, sortIndex: ids.indexOf(w.id) } : w)) })
+    .then((res) => { if (res.ok) document.querySelector(`#edList [data-edit="${id}"]`)?.focus(); else listStatus(esc(res.error), true); });
+}
+const listStatus = (msg, err = false) => { const el = $('#listStatus'); el.innerHTML = msg; el.classList.toggle('err', err); };
+
+function exportBackup() {
+  const blob = new Blob([JSON.stringify(journey, null, 2)], { type: 'application/json' }), a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `the-journey-${(journey.displayName || USER).toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'backup'}-${isoDate(Date.now())}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  listStatus('Backup downloaded.');
+}
+let pendingImport = null;
+async function readImport(file) {
+  pendingImport = null;
+  try {
+    if (file.size > core.LIMITS.bodyChars) throw new Error('That file is too large to be a journey backup.');
+    const { journey: j } = core.migrateJourney(JSON.parse(await file.text()), { journeyId: USER });
+    pendingImport = core.validateJourney({ ...j, revision: journey.revision, visibility: journey.visibility }, { journeyId: USER, nowMs: Date.now() });
+    listStatus(`Replace the current ${plural(journey.waypoints.length, 'place', 'places')} with ${plural(pendingImport.waypoints.length, 'place', 'places')} from “${esc(file.name)}”? <span class="row" style="margin-top:6px"><button class="btn btn-sm btn-gold" type="button" data-act="import-yes">Replace</button><button class="btn btn-sm" type="button" data-act="import-no">Cancel</button></span>`);
+  } catch (err) { listStatus(`That file can’t be imported: ${esc(err.message)}`, true); }
 }
 
 function bindEditor() {
-  $('#fStage').innerHTML = Object.entries(STAGES).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('');
-  $('#editBtn').addEventListener('click', () => (editor.classList.contains('open') ? closeEditor() : openEditor()));
+  $('#fM').innerHTML = $('#fEM').innerHTML = '<option value="">Month</option>' + MONTH_NAMES.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('');
+  $('#editBtn').addEventListener('click', () => (editorOpen() ? closeEditor() : openEditor()));
   $('#editorClose').addEventListener('click', closeEditor);
-  $('#fCancel').addEventListener('click', resetForm);
-  $('#fNow').addEventListener('change', (e) => { $('#fDate').disabled = e.target.checked; });
-  $('#edToken').addEventListener('change', (e) => sessionStorage.setItem('journey:token', e.target.value));
-  $('#edName').addEventListener('change', (e) => { const v = e.target.value.trim(); if (v && v !== journey.name) { journey.name = v; commitChange('Name updated'); } });
-  $('#edReset').addEventListener('click', () => { store.del(LS_DRAFT); location.reload(); });
+  $('#addPlace').addEventListener('click', () => openDetail(null, $('#addPlace')));
+  $('#fCancel').addEventListener('click', () => closeDetail());
+  $('#edForm').addEventListener('submit', submitForm);
+  ['fY', 'fM', 'fEY', 'fEM', 'fCurrent'].forEach((id) => $(`#${id}`).addEventListener(id === 'fY' || id === 'fEY' ? 'input' : 'change', syncDateInputs));
+  $('#fType').addEventListener('change', () => { if (!form.chapterTouched) fillChapters(TYPE_CHAPTER[$('#fType').value]); });
+  $('#fChapter').addEventListener('change', () => { form.chapterTouched = true; const custom = $('#fChapter').value === '__custom'; $('#fChapterCustomRow').hidden = !custom; if (custom) $('#fChapterCustom').focus(); });
 
+  // search combobox
+  fPlace.addEventListener('input', onSearchInput);
+  fPlace.addEventListener('keydown', (e) => {
+    const n = search.results.length;
+    if (e.key === 'ArrowDown' && n) { e.preventDefault(); search.active = (search.active + 1) % n; renderResults(); $(`#loc-opt-${search.active}`).scrollIntoView({ block: 'nearest' }); }
+    else if (e.key === 'ArrowUp' && n) { e.preventDefault(); search.active = (search.active - 1 + n) % n; renderResults(); $(`#loc-opt-${search.active}`).scrollIntoView({ block: 'nearest' }); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (n && search.active >= 0) chooseResult(search.active); else if (n) { search.active = 0; renderResults(); } }
+    else if (e.key === 'Escape' && (n || fPlace.value)) { e.stopPropagation(); if (n) { search.results = []; search.active = -1; renderResults(); setLocState(''); } else resetSearch(); }
+  });
+  fPlace.addEventListener('focus', () => { if (isPhone()) setTimeout(() => $('#locLbl').scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' }), 250); });   // keep the results above the keyboard
+  $('#locList').addEventListener('pointerdown', (e) => e.preventDefault());        // keep focus (and the keyboard) while choosing
+  $('#locList').addEventListener('click', (e) => { const li = e.target.closest('li[data-i]'); if (li) chooseResult(+li.dataset.i); });
+  $('#locState').addEventListener('click', (e) => { if (e.target.id === 'locRetry') onSearchInput(); });
+  $('#locChange').addEventListener('click', () => { const was = form.loc; setLoc(null); showLoc('search'); fPlace.value = was ? was.name : ''; fPlace.focus(); fPlace.select(); if (was) onSearchInput(); });
+  $('#locCoords').addEventListener('click', () => { form.manualSource = 'manual'; showLoc('manual'); if (!$('#mName').value) $('#mName').value = fPlace.value.trim(); $('#mName').focus(); });
+  $('#locGlobe').addEventListener('click', startPick); $('#mPick').addEventListener('click', startPick);
+  $('#pickCancel').addEventListener('click', endPick);
+  $('#mBack').addEventListener('click', () => { clearPreview(); status(''); showLoc('search'); fPlace.focus(); });
+  $('#mUse').addEventListener('click', useManual);
+  ['mLat', 'mLon'].forEach((id) => $(`#${id}`).addEventListener('input', () => { form.manualSource = 'manual'; }));   // hand-edited numbers are no longer "placed on the globe"
+
+  // list
   $('#edList').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
-    if (b.dataset.edit !== undefined) return startEdit(+b.dataset.edit);
-    if (b.dataset.del !== undefined) {
-      if (b.dataset.armed) { journey.waypoints.splice(+b.dataset.del, 1); resetForm(); commitChange('Waypoint deleted'); }
-      else { b.dataset.armed = '1'; b.textContent = 'Sure?'; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = 'Delete'; } }, 3000); }
+    const find = (id) => journey.waypoints.find((w) => w.id === id);
+    if (b.dataset.go) { const i = model.wps.findIndex((w) => w.id === b.dataset.go); if (i >= 0) tweenTo(model.wps[i].t); return; }
+    if (b.dataset.up) return moveTie(b.dataset.up, -1);
+    if (b.dataset.down) return moveTie(b.dataset.down, 1);
+    if (b.dataset.edit) return openDetail(find(b.dataset.edit), b);
+    if (b.dataset.del) {
+      const wp = find(b.dataset.del); if (!wp) return;
+      if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Really delete?'; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = 'Delete'; } }, 3500); return; }
+      if (detailOpen()) closeDetail(false);
+      b.disabled = true; b.textContent = 'Deleting…';
+      commit({ ...journey, waypoints: journey.waypoints.filter((w) => w.id !== wp.id) }, { toastMsg: `${wp.placeName} removed from your journey.` })
+        .then((res) => { if (!res.ok) { listStatus(esc(res.error), true); renderEditorList(); } else { listStatus(''); $('#addPlace').focus({ preventScroll: true }); } });
     }
   });
-
-  $('#edForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const place = $('#fPlace').value.trim(), country = $('#fCountry').value.trim(), now = $('#fNow').checked, date = $('#fDate').value;
-    if (!place) { status('Give the place a name.', true); $('#fPlace').focus(); return; }
-    if (!now && !/^\d{4}-\d{2}-\d{2}$/.test(date)) { status('Pick the arrival date (or tick “NOW”).', true); $('#fDate').focus(); return; }
-    if (now && journey.waypoints.some((w, i) => isNow(w) && i !== editing)) { status('There is already a “NOW” waypoint — edit that one instead.', true); return; }
-    let lat = $('#fLat').value === '' ? null : Number($('#fLat').value), lon = $('#fLon').value === '' ? null : Number($('#fLon').value);
-    if (lat !== null && lon !== null && (!(Math.abs(lat) <= 90) || !(Math.abs(lon) <= 180))) { status('Latitude must be −90…90 and longitude −180…180.', true); return; }
-    if (lat === null || lon === null) { lat = null; lon = null; }
-    const prev = editing !== null ? journey.waypoints[editing] : null;
-    if (prev && (prev.place !== place || prev.country !== country) && prev.lat === lat && prev.lon === lon) { lat = null; lon = null; }   // place changed → re-locate
-    const [y, m, d] = now ? [] : date.split('-').map(Number);
-    const w = { ...(now ? { year: 'NOW' } : { year: y, month: m, day: d }), place, country, lat, lon, stage: $('#fStage').value || 'adult', note: $('#fNote').value.trim(), ...($('#fKind').value ? { kind: $('#fKind').value } : {}) };
-    if (prev) journey.waypoints[editing] = w; else journey.waypoints.push(w);
-    resetForm();
-    commitChange(prev ? 'Waypoint updated' : 'Waypoint added');
+  $('#edName').addEventListener('change', async (e) => {
+    const v = e.target.value.trim(); if (v === journey.displayName) return;
+    const res = await commit({ ...journey, displayName: v });
+    if (!res.ok) listStatus(`The name was not saved. ${esc(res.error)}`, true); else listStatus('');
+  });
+  $('#shareToggle').addEventListener('change', async (e) => {
+    const res = await commit({ ...journey, visibility: e.target.checked ? 'public' : 'private' }, { toastMsg: e.target.checked ? 'Anyone with the link can now view this journey.' : 'This journey is now private.' });
+    if (!res.ok) { e.target.checked = journey.visibility === 'public'; listStatus(esc(res.error), true); }
+  });
+  $('#signOut').addEventListener('click', async () => {
+    await apiCall('/api/journey?resource=session', { method: 'DELETE', body: '{}' });
+    api.canEdit = false; if (detailOpen()) closeDetail(false);
+    if (journey.visibility !== 'public') { await loadJourney(); rebuildAll(); closeEditor(); } else { renderNotice(); setSaveState('idle'); }
+  });
+  $('#exportBtn').addEventListener('click', exportBackup);
+  $('#importBtn').addEventListener('click', () => $('#importFile').click());
+  $('#importFile').addEventListener('change', (e) => { const f = e.target.files[0]; e.target.value = ''; if (f) readImport(f); });
+  jp.addEventListener('click', async (e) => {
+    const act = e.target.closest('[data-act]')?.dataset.act; if (!act) return;
+    if (act === 'fresh') { journey = core.emptyJourney(USER); api.sample = false; rebuildAll(); renderNotice(); $('#edName').value = ''; openDetail(null, $('#addPlace')); }
+    else if (act === 'discard') { store.del(LS_DRAFT); store.del(LS_DRAFT_V1); location.reload(); }
+    else if (act === 'latest') { journey = adopt(api.conflict); api.conflict = null; rebuildAll(); renderNotice(); listStatus('Latest version loaded. Any open form kept what you typed — save it again.'); }
+    else if (act === 'import-no') { pendingImport = null; listStatus(''); }
+    else if (act === 'import-yes' && pendingImport) {
+      const res = await commit(pendingImport, { toastMsg: 'Backup imported.' }); pendingImport = null;
+      listStatus(res.ok ? '' : esc(res.error), !res.ok); if (res.ok) $('#edName').value = journey.displayName;
+    }
+  });
+  jp.addEventListener('submit', (e) => { if (e.target.id !== 'unlockForm') return; e.preventDefault(); unlock($('#unlockPass').value, $('#unlockStatus')); });
+  $('#gateForm').addEventListener('submit', (e) => { e.preventDefault(); unlock($('#gatePass').value, $('#gateStatus')); });
+  $('#gateAction').addEventListener('click', (e) => {
+    if (e.currentTarget.dataset.do === 'reload') return location.reload();
+    openEditor(); if (canEditNow()) openDetail(null, $('#addPlace'));
   });
 }
 
@@ -1560,13 +1995,14 @@ function bindInput() {
   $('#followBtn').addEventListener('click', () => setFollow(!follow));
   document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
   $('#chapBtn').addEventListener('click', (e) => { chapters = !chapters; e.currentTarget.setAttribute('aria-pressed', String(chapters)); colorArcs(); buildLegend(); });
+  $('#figureBtn').setAttribute('aria-pressed', String(figureOn));
+  $('#figureBtn').addEventListener('click', (e) => { figureOn = !figureOn; store.set('journey:figure', figureOn); e.currentTarget.setAttribute('aria-pressed', String(figureOn)); });
   $('#finishBtn').addEventListener('click', startFinish);
-  scrub.addEventListener('input', () => { tween = null; setFollow(true); setT(scrub.value / 100000); });   // scrubbing = instant state
+  scrub.addEventListener('input', () => { tween = null; if (camFly?.thenFollow) { camFly = null; follow = true; camBlend = 1; } setT(scrub.value / 100000); });   // scrubbing = instant state, in either direction
   $('#sheetClose').addEventListener('click', closeSheet);
   $('#sheetJump').addEventListener('click', () => { const i = ui.sheet; if (i !== null && model.wps[i]) tweenTo(model.wps[i].t); closeSheet(); });
 
   canvas.addEventListener('pointerdown', (e) => {
-    lastInteract = performance.now();
     pointer.count++; pointer.down = true; pointer.x = e.clientX; pointer.y = e.clientY; pointer.t = performance.now(); pointer.moved = false;
     if (pointer.count > 1) { pointer.moved = true; freeLook(); }       // pinch
   });
@@ -1575,7 +2011,7 @@ function bindInput() {
       if (!pointer.moved && Math.hypot(e.clientX - pointer.x, e.clientY - pointer.y) > 7) { pointer.moved = true; freeLook(); hideTooltip(); }
       return;
     }
-    if (e.pointerType !== 'mouse') return;
+    if (e.pointerType !== 'mouse' || picking) return;
     const i = pickWaypoint(e.clientX, e.clientY, 18);         // hover → floating tooltip
     canvas.style.cursor = i !== null ? 'pointer' : 'grab';
     if (i !== null) showTooltip(i, e.clientX, e.clientY);
@@ -1583,11 +2019,11 @@ function bindInput() {
   });
   const up = (e) => {
     pointer.count = Math.max(0, pointer.count - 1); if (pointer.count === 0) pointer.down = false;
-    lastInteract = performance.now();
     if (e.type !== 'pointerup' || pointer.moved || performance.now() - pointer.t > 600) return;
+    if (picking) return pickGlobe(e.clientX, e.clientY);
     const touch = e.pointerType !== 'mouse', i = pickWaypoint(e.clientX, e.clientY, touch ? 30 : 18);
     if (i === null) { closeSheet(); hideTooltip(); return; }
-    flyTo(i);                                                   // click / tap → smooth fly-to + detail card
+    flyTo(i);                                                   // click / tap → fly to the place + its card
     if (cardAllowed(i)) { hideTooltip(); openSheet(i); }
     else { closeSheet(); if (!touch) showTooltip(i, e.clientX, e.clientY); }
   };
@@ -1596,31 +2032,68 @@ function bindInput() {
   canvas.addEventListener('wheel', freeLook, { passive: true });
 
   addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { if (ui.pinned !== null || ui.hover !== null) hideTooltip(); else if (ui.sheet !== null) closeSheet(); else if (editor.classList.contains('open')) closeEditor(); return; }
+    if (e.key === 'Escape') {
+      if (picking) endPick(); else if (ui.pinned !== null || ui.hover !== null) hideTooltip(); else if (ui.sheet !== null) closeSheet();
+      else if (detailOpen()) closeDetail(); else if (editorOpen()) closeEditor();
+      return;
+    }
     const tag = (e.target.tagName || '').toLowerCase();
     if ((e.key === ' ' || e.key === 'k') && !['input', 'textarea', 'select', 'button'].includes(tag)) { e.preventDefault(); setPlaying(!playing); }
   });
   new ResizeObserver(() => { resize(); buildTimeline(); ui.dirty = true; }).observe($('#timeline'));
+  addEventListener('resize', syncLayout);
+
+  // Track the *visual* viewport so the editor sheet sits above the on-screen keyboard instead of under it.
+  const vv = window.visualViewport;
+  const syncVV = () => {
+    const h = vv ? vv.height : innerHeight, kb = vv ? Math.max(0, innerHeight - vv.height - vv.offsetTop) : 0;
+    document.documentElement.style.setProperty('--vvh', `${Math.round(h)}px`);
+    document.documentElement.style.setProperty('--kb', `${Math.round(kb)}px`);
+  };
+  vv?.addEventListener('resize', syncVV); vv?.addEventListener('scroll', syncVV); syncVV();
 }
 
 /* ------------------------------------------------------------------ 11. boot */
+/** Without WebGL there is no globe, but the story is still readable: a plain chronological list. */
+function showTextFallback() {
+  const tl = core.buildTimeline(journey, nowMs);
+  $('#loader').innerHTML = `<div style="max-width:520px;padding:24px;overflow:auto;max-height:100%"><p style="text-align:left;margin:0 0 6px;color:var(--ink)">The Journey${journey.displayName ? ` — ${esc(journey.displayName)}` : ''}</p>
+    <p style="text-align:left;font-size:14px;margin:0 0 14px">This device couldn’t start WebGL, so the globe can’t be drawn. Here is the journey as a list.</p>
+    <ol style="text-align:left;font:14px/1.6 var(--sans);color:var(--ink);padding-left:20px;margin:0">${tl.events.map((e) => `<li>${esc(dateSpan(e.wp))} — ${esc(core.placeLabel(e.wp))} <span style="color:var(--muted)">(${TYPE_LABEL[e.wp.stayType]})</span></li>`).join('') || '<li>No places yet.</li>'}</ol></div>`;
+}
 async function boot() {
-  try { initScene(); }
-  catch (err) { console.error(err); $('#loaderText').textContent = 'This device could not start WebGL, which the globe needs.'; return; }
+  let gl = true;
+  try { initScene(); } catch (err) { console.error(err); gl = false; }
+  if (!gl) { await loadJourney(); if (api.loadError || api.locked) $('#loaderText').textContent = api.loadError || 'This journey is private.'; else showTextFallback(); return; }
   bindInput(); bindEditor(); setMode(mode);
   await loadJourney();
   rebuildAll();
   requestAnimationFrame(frame);
   $('#loader').classList.add('done');
   loadAllWeather();
-
-  // First load: resolve any null lat/lon via Open-Meteo, then persist the result.
-  if (journey.waypoints.some((w) => !hasCoords(w))) {
-    const geo = await resolveCoords();
-    if (geo.resolved) { rebuildAll(); saveJourney(); loadAllWeather(); }
-  }
-  if (!model.wps.length) openEditor();
 }
+
+/* Read-only inspection hook for automated browser tests and debugging. It exposes state; it cannot change the journey. */
+window.__journey = {
+  state: () => ({
+    T, mode, playing, follow, idx: st.idx, ms: st.ms, travelling: Boolean(st.travel), apiMode: api.mode, canEdit: canEditNow(), revision: journey.revision,
+    places: model.wps.map((w, i) => ({ id: w.id, name: w.place, lat: w.lat, lon: w.lon, t: w.t, reached: isReached(i), lit: +smooth(w.shown).toFixed(3), markerVisible: Boolean(gfx.markers[i]?.g.visible), screen: (() => { const s = screenOf(i, { x: 0, y: 0 }); return s ? { x: Math.round(s.x), y: Math.round(s.y) } : null; })() })),
+    arcs: model.arcs.map((a) => ({ from: a.from, to: a.to, drawn: Boolean(a.mesh && a.mesh.visible) })),
+    camera: (() => { const c = vec3ToLatLon(camera.position); return { lat: +c.lat.toFixed(2), lon: +c.lon.toFixed(2) }; })(),
+    unlocated: model.tl.unlocated.map((w) => w.placeName), journey,
+  }),
+  /** Mean brightness (0–255) of the Discovery light mask around a lat/lon — reads the same texture the shader samples. */
+  maskAt: (lat, lon, r = 2) => {
+    const cx = Math.floor((core.wrapLon(lon) + 180) / 360 * mask.W), cy = Math.floor((90 - lat) / 180 * mask.H);      // the texel containing the point
+    let sum = 0, n = 0;
+    for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) {
+      const x = ((cx + dx) % mask.W + mask.W) % mask.W, y = clamp(cy + dy, 0, mask.H - 1);      // x wraps exactly like the texture does
+      sum += mask.ctx.getImageData(x, y, 1, 1).data[0]; n++;
+    }
+    return sum / n;
+  },
+  maskTotal: () => { const d = mask.ctx.getImageData(0, 0, mask.W, mask.H).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i]; return s; },
+};
 boot();
 </script>
 </body>
